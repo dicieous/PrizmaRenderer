@@ -10,102 +10,15 @@
 #include <imgui_impl_glfw.h>
 
 #include "Platforms/OpenGL/OpenGLRenderer.h"
-
-
-glm::vec3 CameraUp = glm::vec3{ 0.0f, 1.0f, 0.0f };
-glm::vec3 CameraPos = glm::vec3{ 0.0f, 0.0f, 3.0f };
-glm::vec3 CameraFront = glm::vec3{ 0.0f, 0.0f,-1.0f };
-
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
+#include "Camera.h"
 
 const float SCR_WIDTH = 1280.0f;
 const float SCR_HEIGHT = 720.0f;
 
-float yaw = -90.0f;
-float pitch = 0.0f;
-float fov = 45.0f;
-
-float lastX = SCR_WIDTH * 0.5f;
-float lastY = SCR_HEIGHT * 0.5f;
-
-bool firstMouse = true;
 static void ProcessInput(GLFWwindow* window) {
 
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
-	}
-
-	const float CameraSpeed = 2.5f * deltaTime;
-
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-		CameraPos += CameraFront * CameraSpeed;
-	}
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-		CameraPos -= CameraFront * CameraSpeed;
-	}
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-		CameraPos -= glm::normalize(glm::cross(CameraFront, CameraUp)) * CameraSpeed;
-	}
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-		CameraPos += glm::normalize(glm::cross(CameraFront, CameraUp)) * CameraSpeed;
-	}
-
-	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
-		CameraPos += CameraUp * CameraSpeed;
-	}
-	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
-		CameraPos -= CameraUp * CameraSpeed;
-	}
-
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE) {
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-		firstMouse = true;
-	}
-}
-
-void mouse_callback(GLFWwindow* window, double xPos, double yPos)
-{
-	float xpos = static_cast<float>(xPos);
-	float ypos = static_cast<float>(yPos);
-
-	if (firstMouse)
-	{
-		lastX = xPos;
-		lastY = yPos;
-		firstMouse = false;
-	}
-
-	float xOffset = xPos - lastX;
-	float yOffset = lastY - yPos;
-	lastX = xPos;
-	lastY = yPos;
-
-	float sensitivity = 0.1f;
-	xOffset *= sensitivity;
-	yOffset *= sensitivity;
-
-	yaw += xOffset;
-	pitch += yOffset;
-
-	if (pitch > 89.0f) pitch = 89.0f;
-	if (pitch < -89.0f) pitch = -89.0f;
-
-	glm::vec3 direction;
-
-	direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	direction.y = sin(glm::radians(pitch));
-	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
-		if (firstMouse)
-		{
-			lastX = xPos;
-			lastY = yPos;
-			firstMouse = false;
-		}
-		CameraFront = glm::normalize(direction);
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	}
 }
 
@@ -156,11 +69,14 @@ int main()
 
 	//glViewport(0, 0, 1280, 720);
 
-
+	std::unique_ptr<PerspectiveCamera> Camera = std::make_unique<PerspectiveCamera>(SCR_WIDTH, SCR_HEIGHT);
+	glfwSetWindowUserPointer(window, Camera.get());
 
 	glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height)
 		{
 			glViewport(0, 0, width, height);
+			PerspectiveCamera* camera = static_cast<PerspectiveCamera*>(glfwGetWindowUserPointer(window));
+			camera->SetProjectionMatrix(static_cast<float>(width), static_cast<float>(height));
 		});
 
 	glfwSetWindowSizeCallback(window, [](GLFWwindow* window, int width, int height)
@@ -168,13 +84,20 @@ int main()
 			glViewport(0, 0, width, height);
 		});
 
-	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetCursorPosCallback(window, [](GLFWwindow* window, double xPos, double yPos) {
+
+		PerspectiveCamera* camera = static_cast<PerspectiveCamera*>(glfwGetWindowUserPointer(window));
+		camera->SetCameraAngles(window, xPos, yPos);
+
+		});
 
 	glfwSetScrollCallback(window, [](GLFWwindow* window, double xOffset, double yOffset) {
-		fov -= (float)yOffset;
 
-		if (fov < 1.0f) fov = 1.0f;
-		if (fov > 70.0f) fov = 70.0f;
+		PerspectiveCamera* camera = static_cast<PerspectiveCamera*>(glfwGetWindowUserPointer(window));
+		float fov = camera->GetFOV();
+		fov -= (float)yOffset;
+		fov = glm::clamp(fov, 1.0f, 70.0f);
+		camera->SetFOV(fov);
 
 		});
 
@@ -325,27 +248,17 @@ int main()
 			glm::vec3(-1.3f,  1.0f, -1.5f)
 		};
 
-		glm::mat4 proj = glm::perspective(glm::radians(fov), float(1280) / float(720), 0.1f, 100.0f);
-
-		shader.SetUniformMat4f("u_projection", proj);
-
-		//view = glm::translate(view, glm::vec3(0.0f, 0.0f, -10.0f));
-
-		glm::mat4 view;
 
 		while (!glfwWindowShouldClose(window)) {
 
-			float currentFrame = (float)glfwGetTime();
-			deltaTime = currentFrame - lastFrame;
-			lastFrame = currentFrame;
 
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
 
-
-
 			ProcessInput(window);
+
+			Camera->OnUpdate(window);
 
 			renderer.Clear();
 
@@ -355,9 +268,8 @@ int main()
 			texture_smile.Bind(1);
 			shader.SetUniform1i("u_Texture_2", 1);
 
-			view = glm::lookAt(CameraPos, CameraPos + CameraFront, CameraUp);
-
-			shader.SetUniformMat4f("u_view", view);
+			shader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
+			shader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
 
 			for (int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); i++)
 			{

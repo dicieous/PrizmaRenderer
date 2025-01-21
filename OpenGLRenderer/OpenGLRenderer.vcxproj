@@ -89,6 +89,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\Camera.cpp" />
     <ClCompile Include="src\Platforms\OpenGL\OpenGLIndexBuffer.cpp" />
     <ClCompile Include="src\Platforms\OpenGL\OpenGLRenderer.cpp" />
     <ClCompile Include="src\Platforms\OpenGL\OpenGLTexture.cpp" />
@@ -253,6 +254,7 @@
     <None Include="vendor\glm\glm\gtx\wrap.inl" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Camera.h" />
     <ClInclude Include="src\Platforms\OpenGL\OpenGLIndexBuffer.h" />
     <ClInclude Include="src\Platforms\OpenGL\OpenGLRenderer.h" />
     <ClInclude Include="src\Platforms\OpenGL\OpenGLTexture.h" />
