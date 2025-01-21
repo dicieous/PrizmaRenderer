@@ -2,6 +2,7 @@
 #include <string>
 #include <sstream>
 #include <glad/glad.h>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "OpenGLShader.h"
 #include "DebugUtils/GLUtils.h"
@@ -159,7 +160,7 @@ void OpenGLShader::SetUniform1i(const std::string& name, int value)
 
 void OpenGLShader::SetUniformMat4f(const std::string& name, const glm::mat4& matrix)
 {
-	GLCall(glUniformMatrix4fv(GetUniformLocation(name), 1, GL_FALSE, &matrix[0][0]));
+	GLCall(glUniformMatrix4fv(GetUniformLocation(name), 1, GL_FALSE, glm::value_ptr(matrix)));
 }
 
 
