@@ -104,42 +104,42 @@ int main()
 	{
 		////////Triangle Shader//////////////////
 		float vertices[] = {
-			// Positions         //Normals
+			// Positions         //Normals          //Textures
 			// Front face
-			-0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, // Bottom-left
-			 0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, // Bottom-right
-			 0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, // Top-right
-			-0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, // Top-left
+			-0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,// Bottom-left
+			 0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,// Bottom-right
+			 0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,// Top-right
+			-0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,// Top-left
 
 			// Back face
-			-0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, // Bottom-left
-			 0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, // Bottom-right
-			 0.5f,  0.5f, -0.5f, 0.0f, 0.0f, -1.0f, // Top-right
-			-0.5f,  0.5f, -0.5f, 0.0f, 0.0f, -1.0f, // Top-left
+			-0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,// Bottom-left
+			 0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,// Bottom-right
+			 0.5f,  0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,// Top-right
+			-0.5f,  0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,// Top-left
 
 			// Left face
-			-0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, // Bottom-left
-			-0.5f, -0.5f,  0.5f, -1.0f, 0.0f, 0.0f, // Bottom-right
-			-0.5f,  0.5f,  0.5f, -1.0f, 0.0f, 0.0f, // Top-right
-			-0.5f,  0.5f, -0.5f, -1.0f, 0.0f, 0.0f, // Top-left
+			-0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,// Bottom-left
+			-0.5f, -0.5f,  0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,// Bottom-right
+			-0.5f,  0.5f,  0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,// Top-right
+			-0.5f,  0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,// Top-left
 
 			// Right face
-			 0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, // Bottom-left
-			 0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // Bottom-right
-			 0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // Top-right
-			 0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, // Top-left
+			 0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,// Bottom-left
+			 0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,// Bottom-right
+			 0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,// Top-right
+			 0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,// Top-left
 
 			 // Top face
-			 -0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, // Bottom-left
-			  0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, // Bottom-right
-			  0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // Top-right
-			 -0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // Top-left
+			 -0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,// Bottom-left
+			  0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,// Bottom-right
+			  0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,// Top-right
+			 -0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,// Top-left
 
 			 // Bottom face
-			 -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, // Bottom-left
-			  0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, // Bottom-right
-			  0.5f, -0.5f,  0.5f, 0.0f, -1.0f, 0.0f, // Top-right
-			 -0.5f, -0.5f,  0.5f, 0.0f, -1.0f, 0.0f, // Top-left
+			 -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,// Bottom-left
+			  0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,// Bottom-right
+			  0.5f, -0.5f,  0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f,// Top-right
+			 -0.5f, -0.5f,  0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,// Top-left
 		};
 
 		unsigned int indices[] = {
@@ -189,11 +189,12 @@ int main()
 		VertexBufferLayout layout;
 		layout.Push<float>(3); //Position Attributes
 		layout.Push<float>(3); //Normal Attributes
+		layout.Push<float>(2); //Texture Attributes
 		va.AddBuffer(vb, layout);
 
 		VertexBufferLayout lightSourceLayout;
 		lightSourceLayout.Push<float>(3);//Postion Attributes
-		lightSourceLayout.AddStride(3 * sizeof(float));
+		lightSourceLayout.AddStride(5 * sizeof(float));
 		lightVA.AddBuffer(vb, lightSourceLayout);
 
 		//Create Fragment Shader
@@ -202,6 +203,13 @@ int main()
 
 		OpenGLShader lightSrcShader("res/Shaders/LightCube.shader");
 		lightSrcShader.Bind();
+
+		//Bind Textures
+		Texture2D ContainerTex("res/Textures/container2.png");
+		ContainerTex.Bind();
+
+		Texture2D ContainerSpecTex("res/Textures/container2_specular.png");
+		ContainerSpecTex.Bind(1);
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -253,14 +261,16 @@ int main()
 			float posZ = cos(glfwGetTime()) * position;
 			glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 			//glm::vec3 lightPos(posY, 1.0f, posZ);
-			
+
 			//RecieverObject
 			lightingShader.Bind();
 			
+			ContainerTex.Bind();
+			lightingShader.SetUniform1i("material.diffuse", 0);
 
-			lightingShader.SetUniformVec3f("material.ambient", glm::vec3(1.0f, 0.5f, 0.31f));
-			lightingShader.SetUniformVec3f("material.diffuse", glm::vec3(1.0f, 0.5f, 0.31f));
-			lightingShader.SetUniformVec3f("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
+			ContainerSpecTex.Bind(1);
+			lightingShader.SetUniform1i("material.specular", 1);
+			
 			lightingShader.SetUniform1f("material.shininess", 64.0f);
 			
 			glm::vec3 lightColorV;
@@ -271,8 +281,8 @@ int main()
 			glm::vec3 diffuseColor = lightColorV * glm::vec3(0.5f);
 			glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
 
-			lightingShader.SetUniformVec3f("light.ambient", ambientColor);
-			lightingShader.SetUniformVec3f("light.diffuse", diffuseColor);
+			lightingShader.SetUniformVec3f("light.ambient", glm::vec3(0.2f));
+			lightingShader.SetUniformVec3f("light.diffuse", glm::vec3(0.5f));
 			lightingShader.SetUniformVec3f("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
 			lightingShader.SetUniformVec3f("light.position", lightPos);
 
@@ -289,6 +299,7 @@ int main()
 			
 			va.UnBind();
 			lightingShader.UnBind();
+			ContainerTex.UnBind();
 			//////////////////
 
 			//LightObject
