@@ -251,15 +251,31 @@ int main()
 			const float position = 2.0f;
 			float posY = sin(glfwGetTime()) * position;
 			float posZ = cos(glfwGetTime()) * position;
-			glm::vec3 lightPos(posY, 1.0f, posZ);
+			glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+			//glm::vec3 lightPos(posY, 1.0f, posZ);
 			
 			//RecieverObject
 			lightingShader.Bind();
 			
-			lightingShader.SetUniformVec3f("u_objectColor", objectColor);
-			lightingShader.SetUniformVec3f("u_lightColor", lightColor);
 
-			lightingShader.SetUniformVec3f("u_lightPos", lightPos);
+			lightingShader.SetUniformVec3f("material.ambient", glm::vec3(1.0f, 0.5f, 0.31f));
+			lightingShader.SetUniformVec3f("material.diffuse", glm::vec3(1.0f, 0.5f, 0.31f));
+			lightingShader.SetUniformVec3f("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
+			lightingShader.SetUniform1f("material.shininess", 64.0f);
+			
+			glm::vec3 lightColorV;
+			lightColorV.x = sin(glfwGetTime() * 2.0f);
+			lightColorV.y = sin(glfwGetTime() * 0.7f);
+			lightColorV.z = sin(glfwGetTime() * 1.3f);
+
+			glm::vec3 diffuseColor = lightColorV * glm::vec3(0.5f);
+			glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
+
+			lightingShader.SetUniformVec3f("light.ambient", ambientColor);
+			lightingShader.SetUniformVec3f("light.diffuse", diffuseColor);
+			lightingShader.SetUniformVec3f("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+			lightingShader.SetUniformVec3f("light.position", lightPos);
+
 			lightingShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
 
 			lightingShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
@@ -301,6 +317,9 @@ int main()
 
 			//ImGui::Text("This is some useful text.");
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+			ImGui::Separator();
+
+			ImGui::Separator();
 			ImGui::End();
 
 			glfwPollEvents();
