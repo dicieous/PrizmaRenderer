@@ -23,6 +23,8 @@ public:
 	void SetUniform1i(const std::string& name, int value);
 	void SetUniformMat4f(const std::string& name, const glm::mat4& matrix);
 
+	void SetUniformVec3f(const std::string& name, const glm::vec3& value);
+
 private:
 	unsigned int CompileShader(const unsigned int type, const std::string& shaderSource);
 	ShaderSouce ParseShader(const std::string& filePath);

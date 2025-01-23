@@ -104,42 +104,42 @@ int main()
 	{
 		////////Triangle Shader//////////////////
 		float vertices[] = {
-			// Positions      // Texture Coords
+			// Positions
 			// Front face
-			-0.5f, -0.5f,  0.5f,  0.0f, 0.0f, // Bottom-left
-			 0.5f, -0.5f,  0.5f,  1.0f, 0.0f, // Bottom-right
-			 0.5f,  0.5f,  0.5f,  1.0f, 1.0f, // Top-right
-			-0.5f,  0.5f,  0.5f,  0.0f, 1.0f, // Top-left
+			-0.5f, -0.5f,  0.5f, // Bottom-left
+			 0.5f, -0.5f,  0.5f, // Bottom-right
+			 0.5f,  0.5f,  0.5f, // Top-right
+			-0.5f,  0.5f,  0.5f, // Top-left
 
 			// Back face
-			-0.5f, -0.5f, -0.5f,  0.0f, 0.0f, // Bottom-left
-			 0.5f, -0.5f, -0.5f,  1.0f, 0.0f, // Bottom-right
-			 0.5f,  0.5f, -0.5f,  1.0f, 1.0f, // Top-right
-			-0.5f,  0.5f, -0.5f,  0.0f, 1.0f, // Top-left
+			-0.5f, -0.5f, -0.5f, // Bottom-left
+			 0.5f, -0.5f, -0.5f, // Bottom-right
+			 0.5f,  0.5f, -0.5f, // Top-right
+			-0.5f,  0.5f, -0.5f, // Top-left
 
 			// Left face
-			-0.5f, -0.5f, -0.5f,  0.0f, 0.0f, // Bottom-left
-			-0.5f, -0.5f,  0.5f,  1.0f, 0.0f, // Bottom-right
-			-0.5f,  0.5f,  0.5f,  1.0f, 1.0f, // Top-right
-			-0.5f,  0.5f, -0.5f,  0.0f, 1.0f, // Top-left
+			-0.5f, -0.5f, -0.5f, // Bottom-left
+			-0.5f, -0.5f,  0.5f, // Bottom-right
+			-0.5f,  0.5f,  0.5f, // Top-right
+			-0.5f,  0.5f, -0.5f, // Top-left
 
 			// Right face
-			 0.5f, -0.5f, -0.5f,  0.0f, 0.0f, // Bottom-left
-			 0.5f, -0.5f,  0.5f,  1.0f, 0.0f, // Bottom-right
-			 0.5f,  0.5f,  0.5f,  1.0f, 1.0f, // Top-right
-			 0.5f,  0.5f, -0.5f,  0.0f, 1.0f, // Top-left
+			 0.5f, -0.5f, -0.5f, // Bottom-left
+			 0.5f, -0.5f,  0.5f, // Bottom-right
+			 0.5f,  0.5f,  0.5f, // Top-right
+			 0.5f,  0.5f, -0.5f, // Top-left
 
 			 // Top face
-			 -0.5f,  0.5f, -0.5f,  0.0f, 0.0f, // Bottom-left
-			  0.5f,  0.5f, -0.5f,  1.0f, 0.0f, // Bottom-right
-			  0.5f,  0.5f,  0.5f,  1.0f, 1.0f, // Top-right
-			 -0.5f,  0.5f,  0.5f,  0.0f, 1.0f, // Top-left
+			 -0.5f,  0.5f, -0.5f, // Bottom-left
+			  0.5f,  0.5f, -0.5f, // Bottom-right
+			  0.5f,  0.5f,  0.5f, // Top-right
+			 -0.5f,  0.5f,  0.5f, // Top-left
 
 			 // Bottom face
-			 -0.5f, -0.5f, -0.5f,  0.0f, 0.0f, // Bottom-left
-			  0.5f, -0.5f, -0.5f,  1.0f, 0.0f, // Bottom-right
-			  0.5f, -0.5f,  0.5f,  1.0f, 1.0f, // Top-right
-			 -0.5f, -0.5f,  0.5f,  0.0f, 1.0f  // Top-left
+			 -0.5f, -0.5f, -0.5f, // Bottom-left
+			  0.5f, -0.5f, -0.5f, // Bottom-right
+			  0.5f, -0.5f,  0.5f, // Top-right
+			 -0.5f, -0.5f,  0.5f, // Top-left
 		};
 
 		unsigned int indices[] = {
@@ -177,6 +177,8 @@ int main()
 		//Assign VertexArrayObject
 		OpenGLVertexArray va;
 
+		OpenGLVertexArray lightVA;
+		
 		//Assign the Vertex Buffer on the GPU
 		OpenGLVertexBuffer vb(sizeof(vertices), vertices);
 
@@ -186,30 +188,21 @@ int main()
 		//Add Vertex Layouts
 		VertexBufferLayout layout;
 		layout.Push<float>(3); //Position Attributes
-		layout.Push<float>(2); //Texture Attributes
 		va.AddBuffer(vb, layout);
 
-		glm::vec3 translate = { 0.0f, 0.0f, -5.0f };
-		glm::vec2 scale = { 1.0f, 1.0f };
-		float rotation = -45.0f;
-
+		lightVA.AddBuffer(vb, layout);
 
 		//Create Fragment Shader
-		OpenGLShader shader("res/Shaders/Basic.shader");
-		shader.Bind();
+		OpenGLShader lightingShader("res/Shaders/Lighting.shader");
+		lightingShader.Bind();
 
-		Texture2D texture("res/Textures/Container.jpg");
-		texture.Bind();
-		shader.SetUniform1i("u_Texture", 0);
-
-		Texture2D texture_smile("res/Textures/awesomeface.png");
-		texture_smile.Bind(1);
-		shader.SetUniform1i("u_Texture_2", 1);
-
+		OpenGLShader lightSrcShader("res/Shaders/LightCube.shader");
+		lightSrcShader.Bind();
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 		va.UnBind();
+		lightVA.UnBind();
 		vb.UnBind();
 
 		OpenGLRenderer renderer;
@@ -235,19 +228,8 @@ int main()
 		SetupImGuiStyleWithRoundedBorders();
 
 
-		glm::vec3 cubePositions[] = {
-			glm::vec3(0.0f,  0.0f,  0.0f),
-			glm::vec3(2.0f,  5.0f, -15.0f),
-			glm::vec3(-1.5f, -2.2f, -2.5f),
-			glm::vec3(-3.8f, -2.0f, -12.3f),
-			glm::vec3(2.4f, -0.4f, -3.5f),
-			glm::vec3(-1.7f,  3.0f, -7.5f),
-			glm::vec3(1.3f, -2.0f, -2.5f),
-			glm::vec3(1.5f,  2.0f, -2.5f),
-			glm::vec3(1.5f,  0.2f, -1.5f),
-			glm::vec3(-1.3f,  1.0f, -1.5f)
-		};
-
+		glm::vec3 objectColor(1.0f, 0.5f, 0.31f);
+		glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
 
 		while (!glfwWindowShouldClose(window)) {
 
@@ -262,29 +244,43 @@ int main()
 
 			renderer.Clear();
 
-			texture.Bind();
-			shader.SetUniform1i("u_Texture", 0);
+			lightingShader.Bind();
+			
+			lightingShader.SetUniformVec3f("u_objectColor", objectColor);
+			lightingShader.SetUniformVec3f("u_lightColor", lightColor);
 
-			texture_smile.Bind(1);
-			shader.SetUniform1i("u_Texture_2", 1);
+			lightingShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
+			lightingShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
 
-			shader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
-			shader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
+			glm::mat4 model = glm::mat4(1.0f);
+			lightingShader.SetUniformMat4f("u_model", model);
 
-			for (int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); i++)
-			{
-				glm::mat4 model = glm::mat4(1.0f);
-				model = glm::translate(model, cubePositions[i]);
-				float angle = 20.0f * (i + 1);
-				model = glm::rotate(model, glm::radians(angle) * (float)glfwGetTime(), glm::vec3(1.0f, 0.3f, 0.5f));
-				shader.SetUniformMat4f("u_model", model);
+			va.Bind();
+			renderer.Draw(va, ib, lightingShader);
+			
+			va.UnBind();
+			lightingShader.UnBind();
 
-				renderer.Draw(va, ib, shader);
-			}
+			lightSrcShader.Bind();
+			
+			lightSrcShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
+			lightSrcShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
+			
+			model = glm::mat4(1.0f);
+			glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+			model = glm::translate(model, lightPos) * glm::scale(model, glm::vec3(0.2f));
+			lightSrcShader.SetUniformMat4f("u_model", model);
+			
+			lightVA.Bind();
 
-			ImGui::Begin("Texture");
+			renderer.Draw(lightVA, ib, lightSrcShader);
+			
+			lightVA.UnBind();
+			lightSrcShader.UnBind();
 
-			ImGui::Text("This is some useful text.");
+			ImGui::Begin("FPS");
+
+			//ImGui::Text("This is some useful text.");
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 			ImGui::End();
 
@@ -296,7 +292,6 @@ int main()
 			glfwSwapBuffers(window);
 		}
 
-		shader.UnBind();
 	}
 
 	ImGui_ImplOpenGL3_Shutdown();

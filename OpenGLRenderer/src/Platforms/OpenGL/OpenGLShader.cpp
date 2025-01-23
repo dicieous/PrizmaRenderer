@@ -48,10 +48,10 @@ unsigned int OpenGLShader::CreateShader(const std::string& vertexSrc, const std:
 	if (success == GL_FALSE)
 	{
 		int length;
-		GLCall(glGetProgramiv(shaderProgram, GL_LINK_STATUS, &length));
+		GLCall(glGetProgramiv(shaderProgram, GL_INFO_LOG_LENGTH, &length));
 		char* message = (char*)_malloca(length * sizeof(char));
 
-		GLCall(glGetProgramInfoLog(shaderProgram, length, &length, message));
+		glGetProgramInfoLog(shaderProgram, length, &length, message);
 		std::cout << "Failed to Create Program \n" << std::endl;
 		std::cout << message << std::endl;
 
@@ -88,7 +88,7 @@ unsigned int OpenGLShader::CompileShader(const unsigned int type, const std::str
 	if (!success)
 	{
 		int length;
-		GLCall(glGetShaderiv(shader, GL_COMPILE_STATUS, &length));
+		GLCall(glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length));
 		char* message = (char*)_malloca(length * sizeof(char));
 
 		GLCall(glGetShaderInfoLog(shader, length, &length, message));
@@ -161,6 +161,11 @@ void OpenGLShader::SetUniform1i(const std::string& name, int value)
 void OpenGLShader::SetUniformMat4f(const std::string& name, const glm::mat4& matrix)
 {
 	GLCall(glUniformMatrix4fv(GetUniformLocation(name), 1, GL_FALSE, glm::value_ptr(matrix)));
+}
+
+void OpenGLShader::SetUniformVec3f(const std::string& name, const glm::vec3& value)
+{
+	GLCall(glUniform3fv(GetUniformLocation(name), 1, glm::value_ptr(value)));
 }
 
 

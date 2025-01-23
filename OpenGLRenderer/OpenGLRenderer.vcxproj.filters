@@ -493,6 +493,8 @@
       <Filter>Header Files</Filter>
     </None>
     <None Include="res\Shaders\Basic.shader" />
+    <None Include="res\Shaders\Lighting.shader" />
+    <None Include="res\Shaders\LightCube.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vendor\GLFW\include\GLFW\glfw3.h">

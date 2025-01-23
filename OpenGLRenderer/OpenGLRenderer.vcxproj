@@ -113,6 +113,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="res\Shaders\Basic.shader" />
+    <None Include="res\Shaders\LightCube.shader" />
+    <None Include="res\Shaders\Lighting.shader" />
     <None Include="Vendor\GLFW\Debug\glfw3.pdb" />
     <None Include="vendor\glm\glm\detail\func_common.inl" />
     <None Include="vendor\glm\glm\detail\func_common_simd.inl" />
