@@ -26,9 +26,9 @@ void SetupImGuiStyleWithRoundedBorders()
 {
 	ImGuiStyle& style = ImGui::GetStyle();
 
-	style.WindowRounding = 10.0f;
-	style.ChildRounding = 10.0f;
-	style.PopupRounding = 10.0f;
+	style.WindowRounding = 7.0f;
+	style.ChildRounding = 7.0f;
+	style.PopupRounding = 7.0f;
 
 	style.FrameRounding = 5.0f;
 	style.ScrollbarRounding = 10.0f;
@@ -104,42 +104,42 @@ int main()
 	{
 		////////Triangle Shader//////////////////
 		float vertices[] = {
-			// Positions
+			// Positions         //Normals
 			// Front face
-			-0.5f, -0.5f,  0.5f, // Bottom-left
-			 0.5f, -0.5f,  0.5f, // Bottom-right
-			 0.5f,  0.5f,  0.5f, // Top-right
-			-0.5f,  0.5f,  0.5f, // Top-left
+			-0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, // Bottom-left
+			 0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, // Bottom-right
+			 0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, // Top-right
+			-0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, // Top-left
 
 			// Back face
-			-0.5f, -0.5f, -0.5f, // Bottom-left
-			 0.5f, -0.5f, -0.5f, // Bottom-right
-			 0.5f,  0.5f, -0.5f, // Top-right
-			-0.5f,  0.5f, -0.5f, // Top-left
+			-0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, // Bottom-left
+			 0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, // Bottom-right
+			 0.5f,  0.5f, -0.5f, 0.0f, 0.0f, -1.0f, // Top-right
+			-0.5f,  0.5f, -0.5f, 0.0f, 0.0f, -1.0f, // Top-left
 
 			// Left face
-			-0.5f, -0.5f, -0.5f, // Bottom-left
-			-0.5f, -0.5f,  0.5f, // Bottom-right
-			-0.5f,  0.5f,  0.5f, // Top-right
-			-0.5f,  0.5f, -0.5f, // Top-left
+			-0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, // Bottom-left
+			-0.5f, -0.5f,  0.5f, -1.0f, 0.0f, 0.0f, // Bottom-right
+			-0.5f,  0.5f,  0.5f, -1.0f, 0.0f, 0.0f, // Top-right
+			-0.5f,  0.5f, -0.5f, -1.0f, 0.0f, 0.0f, // Top-left
 
 			// Right face
-			 0.5f, -0.5f, -0.5f, // Bottom-left
-			 0.5f, -0.5f,  0.5f, // Bottom-right
-			 0.5f,  0.5f,  0.5f, // Top-right
-			 0.5f,  0.5f, -0.5f, // Top-left
+			 0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, // Bottom-left
+			 0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // Bottom-right
+			 0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // Top-right
+			 0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, // Top-left
 
 			 // Top face
-			 -0.5f,  0.5f, -0.5f, // Bottom-left
-			  0.5f,  0.5f, -0.5f, // Bottom-right
-			  0.5f,  0.5f,  0.5f, // Top-right
-			 -0.5f,  0.5f,  0.5f, // Top-left
+			 -0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, // Bottom-left
+			  0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, // Bottom-right
+			  0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // Top-right
+			 -0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // Top-left
 
 			 // Bottom face
-			 -0.5f, -0.5f, -0.5f, // Bottom-left
-			  0.5f, -0.5f, -0.5f, // Bottom-right
-			  0.5f, -0.5f,  0.5f, // Top-right
-			 -0.5f, -0.5f,  0.5f, // Top-left
+			 -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, // Bottom-left
+			  0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, // Bottom-right
+			  0.5f, -0.5f,  0.5f, 0.0f, -1.0f, 0.0f, // Top-right
+			 -0.5f, -0.5f,  0.5f, 0.0f, -1.0f, 0.0f, // Top-left
 		};
 
 		unsigned int indices[] = {
@@ -188,9 +188,13 @@ int main()
 		//Add Vertex Layouts
 		VertexBufferLayout layout;
 		layout.Push<float>(3); //Position Attributes
+		layout.Push<float>(3); //Normal Attributes
 		va.AddBuffer(vb, layout);
 
-		lightVA.AddBuffer(vb, layout);
+		VertexBufferLayout lightSourceLayout;
+		lightSourceLayout.Push<float>(3);//Postion Attributes
+		lightSourceLayout.AddStride(3 * sizeof(float));
+		lightVA.AddBuffer(vb, lightSourceLayout);
 
 		//Create Fragment Shader
 		OpenGLShader lightingShader("res/Shaders/Lighting.shader");
@@ -228,11 +232,11 @@ int main()
 		SetupImGuiStyleWithRoundedBorders();
 
 
-		glm::vec3 objectColor(1.0f, 0.5f, 0.31f);
+		glm::vec3 objectColor(1.0f, 0.7f, 0.19f);
 		glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
+		
 
 		while (!glfwWindowShouldClose(window)) {
-
 
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
@@ -244,10 +248,19 @@ int main()
 
 			renderer.Clear();
 
+			const float position = 2.0f;
+			float posY = sin(glfwGetTime()) * position;
+			float posZ = cos(glfwGetTime()) * position;
+			glm::vec3 lightPos(posY, 1.0f, posZ);
+			
+			//RecieverObject
 			lightingShader.Bind();
 			
 			lightingShader.SetUniformVec3f("u_objectColor", objectColor);
 			lightingShader.SetUniformVec3f("u_lightColor", lightColor);
+
+			lightingShader.SetUniformVec3f("u_lightPos", lightPos);
+			lightingShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
 
 			lightingShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
 			lightingShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
@@ -260,15 +273,20 @@ int main()
 			
 			va.UnBind();
 			lightingShader.UnBind();
+			//////////////////
 
+			//LightObject
 			lightSrcShader.Bind();
 			
 			lightSrcShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
 			lightSrcShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
-			
+			lightSrcShader.SetUniformVec3f("u_lightColor", lightColor);
+
+
 			model = glm::mat4(1.0f);
-			glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
-			model = glm::translate(model, lightPos) * glm::scale(model, glm::vec3(0.2f));
+			model = glm::translate(model, lightPos)
+				* glm::scale(model, glm::vec3(0.2f));
+
 			lightSrcShader.SetUniformMat4f("u_model", model);
 			
 			lightVA.Bind();
@@ -277,7 +295,8 @@ int main()
 			
 			lightVA.UnBind();
 			lightSrcShader.UnBind();
-
+			/////////////////////
+			
 			ImGui::Begin("FPS");
 
 			//ImGui::Text("This is some useful text.");

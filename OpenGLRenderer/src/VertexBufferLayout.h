@@ -7,11 +7,11 @@
 #include "Platforms/OpenGL/DebugUtils/GLUtils.h"
 
 struct VertexBufferElement {
-	unsigned int type;
-	unsigned int count;
+	uint32_t type;
+	uint32_t count;
 	unsigned char normalized;
 
-	static unsigned int GetTypeSize(unsigned int type) 
+	static uint32_t GetTypeSize(uint32_t type) 
 	{
 		switch (type)
 		{
@@ -32,36 +32,38 @@ public:
 		: m_Stride(0) {}
 
 	template<typename T>
-	void Push(unsigned int count) 
+	void Push(uint32_t count) 
 	{
 		std::runtime_error(false);
 	}
 
 	template<>
-	void Push<float>(unsigned int count) 
+	void Push<float>(uint32_t count) 
 	{
 		m_Elements.push_back({ GL_FLOAT, count, GL_FALSE });
 		m_Stride += count * VertexBufferElement::GetTypeSize(GL_FLOAT);
 	}
 
 	template<>
-	void Push<unsigned int>(unsigned int count)
+	void Push<uint32_t>(uint32_t count)
 	{
 		m_Elements.push_back({ GL_UNSIGNED_INT, count, GL_FALSE });
 		m_Stride += count * VertexBufferElement::GetTypeSize(GL_UNSIGNED_INT);
 	}
 
 	template<>
-	void Push<unsigned char>(unsigned int count)
+	void Push<unsigned char>(uint32_t count)
 	{
 		m_Elements.push_back({ GL_UNSIGNED_BYTE, count, GL_TRUE });
 		m_Stride += count * VertexBufferElement::GetTypeSize(GL_UNSIGNED_BYTE);
 	}
 
 	inline const std::vector<VertexBufferElement>& GetElements() const { return m_Elements; }
-	inline unsigned int GetStride() const { return m_Stride; }
+	inline uint32_t GetStride() const { return m_Stride; }
+
+	void AddStride(uint32_t stride) { m_Stride += stride;  }
 
 private:
-	unsigned int m_Stride;
+	uint32_t m_Stride;
 	std::vector<VertexBufferElement> m_Elements;
 };
