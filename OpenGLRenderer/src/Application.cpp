@@ -198,18 +198,21 @@ int main()
 		lightVA.AddBuffer(vb, lightSourceLayout);
 
 		//Create Fragment Shader
-		OpenGLShader lightingShader("res/Shaders/Lighting.shader");
+		OpenGLShader lightingShader("res/Shaders/Lighting_Maps.shader");
 		lightingShader.Bind();
 
 		OpenGLShader lightSrcShader("res/Shaders/LightCube.shader");
 		lightSrcShader.Bind();
 
 		//Bind Textures
-		Texture2D ContainerTex("res/Textures/container2.png");
-		ContainerTex.Bind();
+		Texture2D diffuseMap("res/Textures/container2.png");
+		diffuseMap.Bind();
 
-		Texture2D ContainerSpecTex("res/Textures/container2_specular.png");
-		ContainerSpecTex.Bind(1);
+		Texture2D specularMap("res/Textures/container2_specular.png");
+		specularMap.Bind(1);
+
+		Texture2D emissionMap("res/Textures/matrix.jpg");
+		emissionMap.Bind(2);
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -264,13 +267,16 @@ int main()
 
 			//RecieverObject
 			lightingShader.Bind();
-			
-			ContainerTex.Bind();
+			diffuseMap.Bind();
 			lightingShader.SetUniform1i("material.diffuse", 0);
 
-			ContainerSpecTex.Bind(1);
-			lightingShader.SetUniform1i("material.specular", 1);
 			
+			specularMap.Bind(1);
+			lightingShader.SetUniform1i("material.specular", 1);
+
+			emissionMap.Bind(2);
+			lightingShader.SetUniform1i("material.emission", 2);
+
 			lightingShader.SetUniform1f("material.shininess", 64.0f);
 			
 			glm::vec3 lightColorV;
@@ -299,7 +305,7 @@ int main()
 			
 			va.UnBind();
 			lightingShader.UnBind();
-			ContainerTex.UnBind();
+			diffuseMap.UnBind();
 			//////////////////
 
 			//LightObject
