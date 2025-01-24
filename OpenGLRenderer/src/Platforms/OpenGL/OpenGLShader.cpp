@@ -173,4 +173,8 @@ void OpenGLShader::SetUniformVec3f(const std::string& name, const glm::vec3& val
 	GLCall(glUniform3fv(GetUniformLocation(name), 1, glm::value_ptr(value)));
 }
 
+void OpenGLShader::SetUniformVec4f(const std::string& name, const glm::vec4& value)
+{
+	GLCall(glUniform4fv(GetUniformLocation(name), 1, glm::value_ptr(value)));
+}
 

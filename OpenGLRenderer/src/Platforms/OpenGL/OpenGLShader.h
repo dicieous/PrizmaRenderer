@@ -26,6 +26,8 @@ public:
 	void SetUniformMat4f(const std::string& name, const glm::mat4& matrix);
 
 	void SetUniformVec3f(const std::string& name, const glm::vec3& value);
+	void SetUniformVec4f(const std::string& name, const glm::vec4& value);
+
 
 private:
 	unsigned int CompileShader(const unsigned int type, const std::string& shaderSource);

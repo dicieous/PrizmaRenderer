@@ -202,7 +202,7 @@ int main()
 		lightVA.AddBuffer(vb, lightSourceLayout);
 
 		//Create Fragment Shader
-		OpenGLShader lightingShader("res/Shaders/Lighting_Maps.shader");
+		OpenGLShader lightingShader("res/Shaders/Light_Casters.shader");
 		lightingShader.Bind();
 
 		OpenGLShader lightSrcShader("res/Shaders/LightCube.shader");
@@ -215,8 +215,8 @@ int main()
 		Texture2D specularMap("res/Textures/container2_specular.png");
 		specularMap.Bind(1);
 
-		Texture2D emissionMap("res/Textures/matrix.jpg");
-		emissionMap.Bind(2);
+		//Texture2D emissionMap("res/Textures/matrix.jpg");
+		//emissionMap.Bind(2);
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -246,6 +246,18 @@ int main()
 
 		SetupImGuiStyleWithRoundedBorders();
 
+		glm::vec3 cubePositions[] = {
+			glm::vec3(0.0f,  0.0f,  0.0f),
+			glm::vec3(2.0f,  5.0f, -15.0f),
+			glm::vec3(-1.5f, -2.2f, -2.5f),
+			glm::vec3(-3.8f, -2.0f, -12.3f),
+			glm::vec3(2.4f, -0.4f, -3.5f),
+			glm::vec3(-1.7f,  3.0f, -7.5f),
+			glm::vec3(1.3f, -2.0f, -2.5f),
+			glm::vec3(1.5f,  2.0f, -2.5f),
+			glm::vec3(1.5f,  0.2f, -1.5f),
+			glm::vec3(-1.3f,  1.0f, -1.5f)
+		};
 
 		glm::vec3 objectColor(1.0f, 0.7f, 0.19f);
 		glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
@@ -266,7 +278,8 @@ int main()
 			const float position = 2.0f;
 			float posY = sin(glfwGetTime()) * position;
 			float posZ = cos(glfwGetTime()) * position;
-			glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+			glm::vec4 lightPos(1.2f, 1.0f, 2.0f, 1.0f);
+			glm::vec4 lightPosDirec(-0.2f, -1.0f, -0.3f, 0.0f);
 			//glm::vec3 lightPos(posY, 1.0f, posZ);
 
 			//RecieverObject
@@ -278,23 +291,32 @@ int main()
 			specularMap.Bind(1);
 			lightingShader.SetUniform1i("material.specular", 1);
 
-			emissionMap.Bind(2);
-			lightingShader.SetUniform1i("material.emission", 2);
+			/*emissionMap.Bind(2);
+			lightingShader.SetUniform1i("material.emission", 2);*/
 
 			lightingShader.SetUniform1f("material.shininess", 64.0f);
 			
-			glm::vec3 lightColorV;
-			lightColorV.x = sin(glfwGetTime() * 2.0f);
-			lightColorV.y = sin(glfwGetTime() * 0.7f);
-			lightColorV.z = sin(glfwGetTime() * 1.3f);
-
-			glm::vec3 diffuseColor = lightColorV * glm::vec3(0.5f);
-			glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
+			//glm::vec3 lightColorV;
+			//lightColorV.x = sin(glfwGetTime() * 2.0f);
+			//lightColorV.y = sin(glfwGetTime() * 0.7f);
+			//lightColorV.z = sin(glfwGetTime() * 1.3f);
+			//
+			//glm::vec3 diffuseColor = lightColorV * glm::vec3(0.5f);
+			//glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
 
 			lightingShader.SetUniformVec3f("light.ambient", glm::vec3(0.2f));
-			lightingShader.SetUniformVec3f("light.diffuse", glm::vec3(0.5f));
+			lightingShader.SetUniformVec3f("light.diffuse", glm::vec3(0.7f));
 			lightingShader.SetUniformVec3f("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
-			lightingShader.SetUniformVec3f("light.position", lightPos);
+			//lightingShader.SetUniformVec3f("light.position", lightPos);
+
+			lightingShader.SetUniform1f("light.constant",  1.0f);
+			lightingShader.SetUniform1f("light.linear",    0.09f);
+			lightingShader.SetUniform1f("light.quadratic", 0.032f);
+			//For Directional Light
+			//lightingShader.SetUniformVec4f("light.lightVector", lightPosDirec);
+
+			//For Position Light
+			lightingShader.SetUniformVec4f("light.lightVector", lightPos);
 
 			lightingShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
 
@@ -302,10 +324,19 @@ int main()
 			lightingShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
 
 			glm::mat4 model = glm::mat4(1.0f);
-			lightingShader.SetUniformMat4f("u_model", model);
+			//lightingShader.SetUniformMat4f("u_model", model);
 
 			va.Bind();
-			renderer.Draw(va, ib, lightingShader);
+			for (int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); i++)
+			{
+				glm::mat4 model = glm::mat4(1.0f);
+				model = glm::translate(model, cubePositions[i]);
+				float angle = 20.0f * (i + 1);
+				model = glm::rotate(model, glm::radians(angle) * (float)glfwGetTime(), glm::vec3(1.0f, 0.3f, 0.5f));
+				lightingShader.SetUniformMat4f("u_model", model);
+				renderer.Draw(va, ib, lightingShader);
+			}
+			//renderer.Draw(va, ib, lightingShader);
 			
 			va.UnBind();
 			lightingShader.UnBind();
@@ -321,7 +352,7 @@ int main()
 
 
 			model = glm::mat4(1.0f);
-			model = glm::translate(model, lightPos)
+			model = glm::translate(model, glm::vec3(lightPos.x, lightPos.y, lightPos.z))
 				* glm::scale(model, glm::vec3(0.2f));
 
 			lightSrcShader.SetUniformMat4f("u_model", model);
