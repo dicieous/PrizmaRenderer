@@ -2,6 +2,7 @@
 .vs/
 bin/
 bin-int/
+OpenGLRenderer/vendor/Assimp/Assimp_Repo
 
 #Files
 *.user

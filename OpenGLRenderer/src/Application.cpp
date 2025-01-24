@@ -9,6 +9,10 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_glfw.h>
 
+#include <assimp/cimport.h>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
 #include "Platforms/OpenGL/OpenGLRenderer.h"
 #include "Camera.h"
 
