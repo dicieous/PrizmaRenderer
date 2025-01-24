@@ -3,6 +3,6 @@
 bin/
 bin-int/
 OpenGLRenderer/vendor/Assimp/Assimp_Repo
-
+OpenGLRenderer/vendor/Assimp/assimp/samples
 #Files
 *.user
