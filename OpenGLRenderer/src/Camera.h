@@ -21,6 +21,7 @@ public:
 	void SetCameraAngles(GLFWwindow* window, double xPos, double yPos);
 
 	inline const glm::vec3& GetCameraPosition() const { return m_CameraPos; }
+	inline const glm::vec3& GetCameraFront() const { return m_CameraFront; }
 
 private:
 	void LookAt();
