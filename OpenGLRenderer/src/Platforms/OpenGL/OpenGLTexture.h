@@ -14,6 +14,8 @@ public:
 	inline int GetWidth() const { return m_width; }
 	inline int GetHeight() const { return m_height; }
 
+	inline int GetRendererID() const { return m_RendererID; }
+
 private:
 	unsigned int m_RendererID;
 	std::string m_FilePath;

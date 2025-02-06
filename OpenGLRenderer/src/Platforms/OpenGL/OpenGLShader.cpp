@@ -146,7 +146,7 @@ unsigned int OpenGLShader::GetUniformLocation(const std::string& name)
 	GLCall(int location = glGetUniformLocation(m_RendererID, name.c_str()));
 
 	if (location == -1)
-		std::cout << "Warning: uniform In << name << doesn't exist!" << std::endl;
+		std::cout << "Warning: uniform In "<< name << " doesn't exist!" << std::endl;
 	
 	m_UniformLocationCache[name] = location;
 

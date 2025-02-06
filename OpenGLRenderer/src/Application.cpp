@@ -16,6 +16,11 @@
 #include "Platforms/OpenGL/OpenGLRenderer.h"
 #include "Camera.h"
 
+#include "Model.h"
+
+#define BOXES 0
+#define MODEL 1
+
 const float SCR_WIDTH = 1280.0f;
 const float SCR_HEIGHT = 720.0f;
 
@@ -105,7 +110,15 @@ int main()
 
 		});
 
+		GLCall(glEnable(GL_DEPTH_TEST));
+
+		GLCall(glEnable(GL_BLEND));
+		GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+
 	{
+
+#if BOXES
+
 		////////Triangle Shader//////////////////
 		float vertices[] = {
 			// Positions         //Normals          //Textures
@@ -172,10 +185,6 @@ int main()
 			22, 23, 20
 		};
 
-		GLCall(glEnable(GL_DEPTH_TEST));
-
-		GLCall(glEnable(GL_BLEND));
-		GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
 
 		//Assign VertexArrayObject
@@ -224,28 +233,7 @@ int main()
 		lightVA.UnBind();
 		vb.UnBind();
 
-		OpenGLRenderer renderer;
-
-		bool show_demo_window = true;
-		bool show_another_window = false;
-		ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
-		IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
-		ImGuiIO& io = ImGui::GetIO(); (void)io;
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-		// Setup Dear ImGui style
-		ImGui::StyleColorsDark();
-		//ImGui::StyleColorsLight();
-
-		// Setup Platform/Renderer backends
-		ImGui_ImplGlfw_InitForOpenGL(window, true);
-		ImGui_ImplOpenGL3_Init("#version 410");
-
-		SetupImGuiStyleWithRoundedBorders();
-
+		
 		glm::vec3 cubePositions[] = {
 			glm::vec3(0.0f,  0.0f,  0.0f),
 			glm::vec3(2.0f,  5.0f, -15.0f),
@@ -273,6 +261,42 @@ int main()
 
 		//glm::vec3 objectColor(1.0f, 0.7f, 0.19f);
 		glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
+
+		bool show_demo_window = true;
+		bool show_another_window = false;
+		ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+		
+		OpenGLRenderer renderer;
+
+#endif
+		
+#if MODEL
+		OpenGLRenderer renderer;
+
+		OpenGLShader ModelShader("res/Shaders/Model_Loading.shader");
+		ModelShader.Bind();
+
+		Model model("res/Models/backpack/backpack.obj");
+
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+#endif
+
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+		// Setup Dear ImGui style
+		ImGui::StyleColorsDark();
+		//ImGui::StyleColorsLight();
+
+		// Setup Platform/Renderer backends
+		ImGui_ImplGlfw_InitForOpenGL(window, true);
+		ImGui_ImplOpenGL3_Init("#version 410");
+
+		SetupImGuiStyleWithRoundedBorders();
+
 		
 
 		while (!glfwWindowShouldClose(window)) {
@@ -286,6 +310,24 @@ int main()
 			Camera->OnUpdate(window);
 
 			renderer.Clear();
+			
+#if MODEL
+
+			ModelShader.Bind();
+			
+			ModelShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
+			ModelShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
+			
+			glm::mat4 matModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
+			ModelShader.SetUniformMat4f("u_model", matModel);
+
+			model.Draw(ModelShader);
+
+			ModelShader.UnBind();
+#endif
+
+#if BOXES
 
 			const float position = 2.0f;
 			float posY = sin(glfwGetTime()) * position;
@@ -425,7 +467,8 @@ int main()
 			lightVA.UnBind();
 			lightSrcShader.UnBind();
 			/////////////////////
-			
+#endif
+
 			ImGui::Begin("FPS");
 
 			//ImGui::Text("This is some useful text.");
