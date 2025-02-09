@@ -26,7 +26,7 @@ void Mesh::Draw(OpenGLShader& shader)
 		}
 		else if (name == "texture_specular")
 		{
-			number = std::to_string(diffuseNr++);
+			number = std::to_string(specularNr++);
 		}
 
 		shader.SetUniform1i("material." + name + number, i);

@@ -28,13 +28,18 @@ void main()
 #type fragment
 #version 330 core
 
+struct Material
+{
+	sampler2D texture_diffuse1;
+};
+
 out vec4 FragColor;
 
 in vec2 o_TexCoords;
 
-uniform sampler2D texture_diffuse1;
+uniform Material material;
 
 void main()
 {
-	FragColor = texture(texture_diffuse1, o_TexCoords);
+	FragColor = texture(material.texture_diffuse1, o_TexCoords);
 }

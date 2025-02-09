@@ -18,8 +18,8 @@
 
 #include "Model.h"
 
-#define BOXES 0
-#define MODEL 1
+#define BOXES 1
+#define MODEL 0
 
 const float SCR_WIDTH = 1280.0f;
 const float SCR_HEIGHT = 720.0f;

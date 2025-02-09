@@ -174,6 +174,16 @@ vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 viewDir, vec3 diffuse
 	return (ambient + diffuse + specular);
 }
 
+//depth Test
+	float near = 0.1;
+	float far = 100;
+
+	float LinearizeDepth(float depth)
+	{
+		float z = depth * 2.0 - 1.0;
+		return (2.0 * near * far) / (far + near - z * (far - near));
+	}
+
 void main()
 {
 	vec3 normal = normalize(o_Normal);
@@ -200,6 +210,10 @@ void main()
 	{
 		result += CalculateSpotLight(spotLightList[i], normal, viewDir, diffuseTexColor, specularTexColor);
 	}
+
+	float depth = LinearizeDepth(gl_FragCoord.z)/ far;
+	vec3 depthVec3 = vec3(pow(depth, 0.9));
+	result = result * (1 - depthVec3) + depthVec3;
 
 	FragColor = vec4(result, 1.0);
 }

@@ -4,5 +4,6 @@ bin/
 bin-int/
 OpenGLRenderer/vendor/Assimp/Assimp_Repo
 OpenGLRenderer/vendor/Assimp/assimp/samples
+OpenGLRenderer/res/Models
 #Files
 *.user
