@@ -20,6 +20,7 @@
 
 #define BOXES 1
 #define MODEL 0
+#define OUTLINE 0
 
 const float SCR_WIDTH = 1280.0f;
 const float SCR_HEIGHT = 720.0f;
@@ -218,11 +219,12 @@ int main()
 		OpenGLShader lightSrcShader("res/Shaders/LightCube.shader");
 		lightSrcShader.Bind();
 
+#if OUTLINE
 		OpenGLShader singleColorShader("res/Shaders/SingleColorShader.shader");
 		singleColorShader.Bind();
-
+#endif
 		//Bind Textures
-		Texture2D diffuseMap("res/Textures/container2.png");
+		Texture2D diffuseMap("res/Textures/blending_transparent_window.png");
 		diffuseMap.Bind();
 
 		Texture2D specularMap("res/Textures/container2_specular.png");
@@ -357,37 +359,37 @@ int main()
 			// directional light
 			lightingShader.SetUniformVec3f("dirLight.direction", glm::vec3(- 0.2f, -1.0f, -0.3f));
 			lightingShader.SetUniformVec3f("dirLight.ambient", glm::vec3(0.05f));
-			lightingShader.SetUniformVec3f("dirLight.diffuse", glm::vec3(0.4f));
+			lightingShader.SetUniformVec3f("dirLight.diffuse", glm::vec3(0.5f));
 			lightingShader.SetUniformVec3f("dirLight.specular", glm::vec3(0.5f));
 			// point light 1
 			lightingShader.SetUniformVec3f("pointLightList[0].position", pointLightPositions[0]);
 			lightingShader.SetUniformVec3f("pointLightList[0].ambient", glm::vec3(0.05f));
-			lightingShader.SetUniformVec3f("pointLightList[0].diffuse", glm::vec3(0.8f));
-			lightingShader.SetUniformVec3f("pointLightList[0].specular", glm::vec3(1.0f));
+			lightingShader.SetUniformVec3f("pointLightList[0].diffuse", glm::vec3(1.0f));
+			lightingShader.SetUniformVec3f("pointLightList[0].specular", glm::vec3(1.2f));
 			lightingShader.SetUniform1f("pointLightList[0].constant", 1.0f);
 			lightingShader.SetUniform1f("pointLightList[0].linear", 0.09f);
 			lightingShader.SetUniform1f("pointLightList[0].quadratic", 0.032f);
 			// point light 2
 			lightingShader.SetUniformVec3f("pointLightList[1].position", pointLightPositions[1]);
 			lightingShader.SetUniformVec3f("pointLightList[1].ambient", glm::vec3(0.05f));
-			lightingShader.SetUniformVec3f("pointLightList[1].diffuse", glm::vec3(0.8f));
-			lightingShader.SetUniformVec3f("pointLightList[1].specular", glm::vec3(1.0f));
+			lightingShader.SetUniformVec3f("pointLightList[1].diffuse", glm::vec3(1.0f));
+			lightingShader.SetUniformVec3f("pointLightList[1].specular", glm::vec3(1.2f));
 			lightingShader.SetUniform1f("pointLightList[1].constant", 1.0f);
 			lightingShader.SetUniform1f("pointLightList[1].linear", 0.09f);
 			lightingShader.SetUniform1f("pointLightList[1].quadratic", 0.032f);
 			// point light 3
 			lightingShader.SetUniformVec3f("pointLightList[2].position", pointLightPositions[2]);
 			lightingShader.SetUniformVec3f("pointLightList[2].ambient", glm::vec3(0.05f));
-			lightingShader.SetUniformVec3f("pointLightList[2].diffuse", glm::vec3(0.8f));
-			lightingShader.SetUniformVec3f("pointLightList[2].specular", glm::vec3(1.0f));
+			lightingShader.SetUniformVec3f("pointLightList[2].diffuse", glm::vec3(1.0f));
+			lightingShader.SetUniformVec3f("pointLightList[2].specular", glm::vec3(1.2f));
 			lightingShader.SetUniform1f("pointLightList[2].constant", 1.0f);
 			lightingShader.SetUniform1f("pointLightList[2].linear", 0.09f);
 			lightingShader.SetUniform1f("pointLightList[2].quadratic", 0.032f);
 			// point light 4
 			lightingShader.SetUniformVec3f("pointLightList[3].position", pointLightPositions[3]);
 			lightingShader.SetUniformVec3f("pointLightList[3].ambient", glm::vec3(0.05f));
-			lightingShader.SetUniformVec3f("pointLightList[3].diffuse", glm::vec3(0.8f));
-			lightingShader.SetUniformVec3f("pointLightList[3].specular", glm::vec3(1.0f));
+			lightingShader.SetUniformVec3f("pointLightList[3].diffuse", glm::vec3(1.0f));
+			lightingShader.SetUniformVec3f("pointLightList[3].specular", glm::vec3(1.2f));
 			lightingShader.SetUniform1f("pointLightList[3].constant", 1.0f);
 			lightingShader.SetUniform1f("pointLightList[3].linear", 0.09f);
 			lightingShader.SetUniform1f("pointLightList[3].quadratic", 0.032f);
@@ -396,7 +398,7 @@ int main()
 			lightingShader.SetUniformVec3f("spotLightList[0].direction", glm::normalize(-spotLightPositions[0]));
 			lightingShader.SetUniformVec3f("spotLightList[0].ambient", glm::vec3(0.0f));
 			lightingShader.SetUniformVec3f("spotLightList[0].diffuse", glm::vec3(1.0f));
-			lightingShader.SetUniformVec3f("spotLightList[0].specular", glm::vec3(1.0f));
+			lightingShader.SetUniformVec3f("spotLightList[0].specular", glm::vec3(1.2f));
 			lightingShader.SetUniform1f("spotLightList[0].constant", 1.0f);
 			lightingShader.SetUniform1f("spotLightList[0].linear", 0.09f);
 			lightingShader.SetUniform1f("spotLightList[0].quadratic", 0.032f);
@@ -408,7 +410,7 @@ int main()
 			lightingShader.SetUniformVec3f("spotLightList[1].direction", glm::normalize(-spotLightPositions[1]));
 			lightingShader.SetUniformVec3f("spotLightList[1].ambient", glm::vec3(0.0f));
 			lightingShader.SetUniformVec3f("spotLightList[1].diffuse", glm::vec3(1.0f));
-			lightingShader.SetUniformVec3f("spotLightList[1].specular", glm::vec3(1.0f));
+			lightingShader.SetUniformVec3f("spotLightList[1].specular", glm::vec3(1.2f));
 			lightingShader.SetUniform1f("spotLightList[1].constant", 1.0f);
 			lightingShader.SetUniform1f("spotLightList[1].linear", 0.09f);
 			lightingShader.SetUniform1f("spotLightList[1].quadratic", 0.032f);
@@ -433,7 +435,7 @@ int main()
 			{
 				glm::mat4 model = glm::mat4(1.0f);
 				model = glm::translate(model, cubePositions[i]);
-				float angle = 20.0f * (i + 1);
+				float angle = 10.0f * (i + 1);
 				model = glm::rotate(model, glm::radians(angle) * (float)glfwGetTime(), glm::vec3(1.0f, 0.3f, 0.5f)) 
 					* glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
 				lightingShader.SetUniformMat4f("u_model", model);
@@ -441,7 +443,8 @@ int main()
 			}
 			
 			lightingShader.UnBind();
-
+#if OUTLINE
+			//Drawing outline
 			GLCall(glStencilFunc(GL_NOTEQUAL, 1, 0xFF));
 			GLCall(glStencilMask(0x00));
 			GLCall(glDisable(GL_DEPTH_TEST));
@@ -465,6 +468,7 @@ int main()
 			GLCall(glStencilMask(0xFF));
 			GLCall(glStencilFunc(GL_ALWAYS, 1, 0xFF));
 			GLCall(glEnable(GL_DEPTH_TEST));
+#endif
 			va.UnBind();
 			diffuseMap.UnBind();
 			//////////////////

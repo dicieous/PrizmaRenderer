@@ -95,15 +95,15 @@ uniform PointLight pointLightList[4];
 uniform SpotLight spotLightList[2];
 
 //Light Calculations
-vec3 AmbientLight(vec3 diffuseTexColor)
+vec3 AmbientLight(vec4 diffuseTexColor)
 {
-	return diffuseTexColor;
+	return diffuseTexColor.rgb;
 }
 
-vec3 DiffuseLight(vec3 normal, vec3 lightDir, vec3 diffuseTexColor)
+vec3 DiffuseLight(vec3 normal, vec3 lightDir, vec4 diffuseTexColor)
 {
 	float diff = max(dot(lightDir, normal), 0.0f);
-	return (diffuseTexColor * diff);
+	return (diffuseTexColor.rgb * diff);
 }
 
 vec3 SpecularLight(vec3 normal, vec3 viewDir, vec3 lightDir, vec3 specularTexColor)
@@ -114,34 +114,34 @@ vec3 SpecularLight(vec3 normal, vec3 viewDir, vec3 lightDir, vec3 specularTexCol
 	return (specularTexColor * spec);
 }
 
-vec3 EmissionColor(vec3 emissionTexColor, vec3 diffuseTexColor)
+vec3 EmissionColor(vec3 emissionTexColor, vec4 diffuseTexColor)
 {
-	float brightness = 1.0 - length(diffuseTexColor);
+	float brightness = 1.0 - length(diffuseTexColor.rgb);
 	float emissionMask = step(0.1, brightness);
 	return emissionTexColor * emissionMask;
 }
 
 //Light Type Calculations
-vec3 CalculateDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 diffuseTexColor, vec3 specularTexColor)
+vec3 CalculateDirLight(DirLight light, vec3 normal, vec3 viewDir, vec4 diffuseTexColor, vec3 specularTexColor)
 {
 
 	vec3 lightDir = normalize(-light.direction);
 
-	vec3 ambient = light.ambient * diffuseTexColor;
+	vec3 ambient = light.ambient * diffuseTexColor.rgb;
 	vec3 diffuse = light.diffuse * DiffuseLight(normal, lightDir, diffuseTexColor);
 	vec3 specular = light.specular * SpecularLight(normal, viewDir, lightDir, specularTexColor);
 
 	return (ambient + diffuse + specular);
 }
 
-vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 viewDir, vec3 diffuseTexColor, vec3 specularTexColor)
+vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 viewDir, vec4 diffuseTexColor, vec3 specularTexColor)
 {
 	vec3 lightDir = normalize(light.position - o_FragPos);
 	
 	float distance = length(light.position - o_FragPos);
 	float attenuation = 1.0f/ (light.constant + light.linear + light.quadratic * (distance * distance));
 
-	vec3 ambient = light.ambient * diffuseTexColor;
+	vec3 ambient = light.ambient * diffuseTexColor.rgb;
 	vec3 diffuse = light.diffuse * DiffuseLight(normal, lightDir, diffuseTexColor);
 	vec3 specular = light.specular * SpecularLight(normal, viewDir, lightDir, specularTexColor);
 
@@ -152,7 +152,7 @@ vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 viewDir, vec3 diffu
 	return (ambient + diffuse + specular);
 }
 
-vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 viewDir, vec3 diffuseTexColor, vec3 specularTexColor)
+vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 viewDir, vec4 diffuseTexColor, vec3 specularTexColor)
 {
 	vec3 lightDir = normalize(light.position - o_FragPos);
 
@@ -163,7 +163,7 @@ vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 viewDir, vec3 diffuse
 	float epsilon = light.cutOff - light.outerCutOff;
 	float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
 
-	vec3 ambient = light.ambient * diffuseTexColor;
+	vec3 ambient = light.ambient * diffuseTexColor.rgb;
 	vec3 diffuse = light.diffuse * DiffuseLight(normal, lightDir, diffuseTexColor);
 	vec3 specular = light.specular * SpecularLight(normal, viewDir, lightDir, specularTexColor);
 
@@ -202,7 +202,7 @@ void main()
 	vec3 normal = normalize(o_Normal);
 	vec3 viewDir = normalize(u_viewPos - o_FragPos);
 
-	vec3 diffuseTexColor = texture(material.diffuse, o_TexCoords).rgb;
+	vec4 diffuseTexColor = texture(material.diffuse, o_TexCoords);
 	vec3 specularTexColor = texture(material.specular, o_TexCoords).rgb;
 
 	//Use emission map only
@@ -227,10 +227,11 @@ void main()
 	float depth = LogisticDepth(gl_FragCoord.z);
 	vec3 foggedColor = Fog(depth, result, vec3(0.85f, 0.85f, 0.90f));
 
-	#define FOG 1
+	#define FOG 0
 	#if FOG
-	FragColor = vec4(foggedColor, 1.0);
+	FragColor = vec4(foggedColor, diffuseTexColor.a);
 	#else
-	FragColor = vec4((result), 1.0);
+	FragColor = vec4((result), diffuseTexColor.a);
+	//FragColor = vec4(diffuseTexColor);
 	#endif
 }
