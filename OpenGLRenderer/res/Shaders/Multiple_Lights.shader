@@ -183,6 +183,19 @@ vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 viewDir, vec3 diffuse
 		float z = depth * 2.0 - 1.0;
 		return (2.0 * near * far) / (far + near - z * (far - near));
 	}
+	
+	//For Fog
+	float LogisticDepth(float Depth, float Steepness = 0.5f, float offset =5.0f)
+	{
+		float zValue = LinearizeDepth(Depth);
+		return (1.0 / (1.0 + exp(-Steepness * (zValue - offset))));
+	}
+
+	vec3 Fog(float depth, vec3 color, vec3 fogColor)
+	{
+		float fogFactor = 1.0 - depth;
+		return mix (fogColor, color, fogFactor);
+	}
 
 void main()
 {
@@ -211,9 +224,13 @@ void main()
 		result += CalculateSpotLight(spotLightList[i], normal, viewDir, diffuseTexColor, specularTexColor);
 	}
 
-	float depth = LinearizeDepth(gl_FragCoord.z)/ far;
-	vec3 depthVec3 = vec3(pow(depth, 0.9));
-	result = result * (1 - depthVec3) + depthVec3;
+	float depth = LogisticDepth(gl_FragCoord.z);
+	vec3 foggedColor = Fog(depth, result, vec3(0.85f, 0.85f, 0.90f));
 
-	FragColor = vec4(result, 1.0);
+	#define FOG 1
+	#if FOG
+	FragColor = vec4(foggedColor, 1.0);
+	#else
+	FragColor = vec4((result), 1.0);
+	#endif
 }
