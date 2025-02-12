@@ -121,6 +121,7 @@
     <None Include="res\Shaders\Light_Casters.shader" />
     <None Include="res\Shaders\Model_Loading.shader" />
     <None Include="res\Shaders\Multiple_Lights.shader" />
+    <None Include="res\Shaders\SingleColorShader.shader" />
     <None Include="Vendor\GLFW\Debug\glfw3.pdb" />
     <None Include="vendor\glm\glm\detail\func_common.inl" />
     <None Include="vendor\glm\glm\detail\func_common_simd.inl" />

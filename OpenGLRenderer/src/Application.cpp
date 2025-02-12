@@ -111,6 +111,7 @@ int main()
 		});
 
 		GLCall(glEnable(GL_DEPTH_TEST));
+		GLCall(glEnable(GL_STENCIL_TEST));
 
 		GLCall(glEnable(GL_BLEND));
 		GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
@@ -216,6 +217,9 @@ int main()
 
 		OpenGLShader lightSrcShader("res/Shaders/LightCube.shader");
 		lightSrcShader.Bind();
+
+		OpenGLShader singleColorShader("res/Shaders/SingleColorShader.shader");
+		singleColorShader.Bind();
 
 		//Bind Textures
 		Texture2D diffuseMap("res/Textures/container2.png");
@@ -419,20 +423,49 @@ int main()
 			glm::mat4 model = glm::mat4(1.0f);
 			//lightingShader.SetUniformMat4f("u_model", model);
 
+			//Drawing with normal Shader
+			GLCall(glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE));
+			GLCall(glStencilFunc(GL_ALWAYS, 1, 0xFF));
+			GLCall(glStencilMask(0xFF));
+
 			va.Bind();
 			for (int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); i++)
 			{
 				glm::mat4 model = glm::mat4(1.0f);
 				model = glm::translate(model, cubePositions[i]);
 				float angle = 20.0f * (i + 1);
-				model = glm::rotate(model, glm::radians(angle) * (float)glfwGetTime(), glm::vec3(1.0f, 0.3f, 0.5f));
+				model = glm::rotate(model, glm::radians(angle) * (float)glfwGetTime(), glm::vec3(1.0f, 0.3f, 0.5f)) 
+					* glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
 				lightingShader.SetUniformMat4f("u_model", model);
 				renderer.Draw(va, ib, lightingShader);
 			}
-			//renderer.Draw(va, ib, lightingShader);
 			
-			va.UnBind();
 			lightingShader.UnBind();
+
+			GLCall(glStencilFunc(GL_NOTEQUAL, 1, 0xFF));
+			GLCall(glStencilMask(0x00));
+			GLCall(glDisable(GL_DEPTH_TEST));
+
+			singleColorShader.Bind();
+
+			singleColorShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
+			singleColorShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
+
+			for (int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); i++)
+			{
+				glm::mat4 model = glm::mat4(1.0f);
+				model = glm::translate(model, cubePositions[i]);
+				float angle = 20.0f * (i + 1);
+				model = glm::rotate(model, glm::radians(angle) * (float)glfwGetTime(), glm::vec3(1.0f, 0.3f, 0.5f))
+					* glm::scale(glm::mat4(1.0f), glm::vec3(1.1f));
+				singleColorShader.SetUniformMat4f("u_model", model);
+				renderer.Draw(va, ib, singleColorShader);
+			}
+			//renderer.Draw(va, ib, lightingShader);
+			GLCall(glStencilMask(0xFF));
+			GLCall(glStencilFunc(GL_ALWAYS, 1, 0xFF));
+			GLCall(glEnable(GL_DEPTH_TEST));
+			va.UnBind();
 			diffuseMap.UnBind();
 			//////////////////
 
