@@ -25,6 +25,8 @@
 const float SCR_WIDTH = 1280.0f;
 const float SCR_HEIGHT = 720.0f;
 
+static glm::vec2 s_ViewportSize{ SCR_WIDTH, SCR_HEIGHT };
+
 static void ProcessInput(GLFWwindow* window) {
 
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
@@ -47,6 +49,19 @@ void SetupImGuiStyleWithRoundedBorders()
 	ImVec4* colors = style.Colors;
 	colors[ImGuiCol_WindowBg] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);  // Window background
 	colors[ImGuiCol_Border] = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);    // Border color
+}
+
+void ResizeFramebuffer(uint32_t& colorAttachment, uint32_t& rbo, int width, int height)
+{
+	// Resize color attachment
+	GLCall(glBindTexture(GL_TEXTURE_2D, colorAttachment));
+	GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr));
+	GLCall(glBindTexture(GL_TEXTURE_2D, 0));
+
+	// Resize renderbuffer
+	GLCall(glBindRenderbuffer(GL_RENDERBUFFER, rbo));
+	GLCall(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height));
+	GLCall(glBindRenderbuffer(GL_RENDERBUFFER, 0));
 }
 
 int main()
@@ -85,12 +100,19 @@ int main()
 	glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height)
 		{
 			glViewport(0, 0, width, height);
+
+			s_ViewportSize.x = width;
+			s_ViewportSize.y = height;
+
 			PerspectiveCamera* camera = static_cast<PerspectiveCamera*>(glfwGetWindowUserPointer(window));
 			camera->SetProjectionMatrix(static_cast<float>(width), static_cast<float>(height));
 		});
 
 	glfwSetWindowSizeCallback(window, [](GLFWwindow* window, int width, int height)
 		{
+			s_ViewportSize.x = width;
+			s_ViewportSize.y = height;
+
 			glViewport(0, 0, width, height);
 		});
 
@@ -113,6 +135,9 @@ int main()
 
 		GLCall(glEnable(GL_DEPTH_TEST));
 		GLCall(glEnable(GL_STENCIL_TEST));
+		//GLCall(glEnable(GL_CULL_FACE));
+		//GLCall(glCullFace(GL_FRONT));
+		//GLCall(glFrontFace(GL_CW));
 
 		GLCall(glEnable(GL_BLEND));
 		GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
@@ -122,6 +147,7 @@ int main()
 #if BOXES
 
 		////////Triangle Shader//////////////////
+		//Cube stuff
 		float vertices[] = {
 			// Positions         //Normals          //Textures
 			// Front face
@@ -163,31 +189,29 @@ int main()
 
 		unsigned int indices[] = {
 			// Front face
-			0, 1, 2,
-			2, 3, 0,
+			0, 2, 1,
+			2, 0, 3,
 
 			// Back face
-			4, 5, 6,
-			6, 7, 4,
+			4, 6, 5,
+			6, 4, 7,
 
 			// Left face
-			8, 9, 10,
-			10, 11, 8,
+			8, 10, 9,
+			10, 8, 11,
 
 			// Right face
-			12, 13, 14,
-			14, 15, 12,
+			12, 14, 13,
+			14, 12, 15,
 
 			// Top face
-			16, 17, 18,
-			18, 19, 16,
+			16, 18, 17,
+			18, 16, 19,
 
 			// Bottom face
-			20, 21, 22,
-			22, 23, 20
+			20, 22, 21,
+			22, 20, 23
 		};
-
-
 
 		//Assign VertexArrayObject
 		OpenGLVertexArray va;
@@ -219,12 +243,8 @@ int main()
 		OpenGLShader lightSrcShader("res/Shaders/LightCube.shader");
 		lightSrcShader.Bind();
 
-#if OUTLINE
-		OpenGLShader singleColorShader("res/Shaders/SingleColorShader.shader");
-		singleColorShader.Bind();
-#endif
 		//Bind Textures
-		Texture2D diffuseMap("res/Textures/blending_transparent_window.png");
+		Texture2D diffuseMap("res/Textures/container2.png");
 		diffuseMap.Bind();
 
 		Texture2D specularMap("res/Textures/container2_specular.png");
@@ -238,7 +258,6 @@ int main()
 		va.UnBind();
 		lightVA.UnBind();
 		vb.UnBind();
-
 		
 		glm::vec3 cubePositions[] = {
 			glm::vec3(0.0f,  0.0f,  0.0f),
@@ -273,9 +292,75 @@ int main()
 		ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 		
 		OpenGLRenderer renderer;
-
 #endif
+
+		//Quad Stuff
+		float QuadVertices[] = {
+			//Positions   //TexCoords
+			-1.0f,  1.0f, 0.0f, 1.0f,
+			-1.0f, -1.0f, 0.0f, 0.0f,
+			 1.0f,  1.0f, 1.0f, 1.0f,
+			 1.0f, -1.0f, 1.0f, 0.0f,
+		};
+
+		uint32_t QuadIndices[] = {
+			0, 1, 2,
+			1, 3 ,2,
+		};
+
+		//Create Framebuffers
+		uint32_t fbo;
+		GLCall(glGenFramebuffers(1, &fbo));
+		GLCall(glBindFramebuffer(GL_FRAMEBUFFER, fbo));
+
+		uint32_t colorAttachment;
+		GLCall(glGenTextures(1, &colorAttachment));
+		GLCall(glBindTexture(GL_TEXTURE_2D, colorAttachment));
+
+		GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr));
+
+		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+		GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorAttachment, 0));
+		GLCall(glBindTexture(GL_TEXTURE_2D, 0));
+
+		//Create RenderBuffer
+		uint32_t rbo;
+		GLCall(glGenRenderbuffers(1, &rbo));
+		GLCall(glBindRenderbuffer(GL_RENDERBUFFER, rbo));
+		GLCall(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT));
+		GLCall(glBindRenderbuffer(GL_RENDERBUFFER, 0));
+
+		GLCall(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo));
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		{
+			std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+			ASSERT((glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE));
+		}
+		GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+
+		OpenGLVertexArray quadVA;
+
+		//Assign the Vertex Buffer on the GPU
+		OpenGLVertexBuffer quadVB(sizeof(QuadVertices), QuadVertices);
+
+		//Assign the Index Buffer on the GPU
+		OpenGLIndexBuffer quadIB(sizeof(QuadIndices) / sizeof(QuadIndices[0]), QuadIndices);
+
+		//Add Vertex Layouts
+		VertexBufferLayout quadLayout;
+		quadLayout.Push<float>(2); //Position Attribute
+		quadLayout.Push<float>(2); //Texture Attribute
+		quadVA.AddBuffer(quadVB, quadLayout);
+
+		//Create Fragment Shader
+		OpenGLShader QuadScreenShader("res/Shaders/FrameBufferScreen.shader");
+		QuadScreenShader.Bind();
+		QuadScreenShader.SetUniform1i("screenTexture", 0);
 		
+		quadVB.UnBind();
+
 #if MODEL
 		OpenGLRenderer renderer;
 
@@ -286,7 +371,6 @@ int main()
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 #endif
-
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -313,17 +397,23 @@ int main()
 
 			ProcessInput(window);
 
-			Camera->OnUpdate(window);
+			GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+			renderer.Clear();
+
+			glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+			glEnable(GL_DEPTH_TEST);
 
 			renderer.Clear();
-			
+
+			Camera->OnUpdate(window);
+
 #if MODEL
 
 			ModelShader.Bind();
-			
+
 			ModelShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
 			ModelShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
-			
+
 			glm::mat4 matModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f))
 				* glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
 			ModelShader.SetUniformMat4f("u_model", matModel);
@@ -425,11 +515,6 @@ int main()
 			glm::mat4 model = glm::mat4(1.0f);
 			//lightingShader.SetUniformMat4f("u_model", model);
 
-			//Drawing with normal Shader
-			GLCall(glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE));
-			GLCall(glStencilFunc(GL_ALWAYS, 1, 0xFF));
-			GLCall(glStencilMask(0xFF));
-
 			va.Bind();
 			for (int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); i++)
 			{
@@ -443,34 +528,9 @@ int main()
 			}
 			
 			lightingShader.UnBind();
-#if OUTLINE
-			//Drawing outline
-			GLCall(glStencilFunc(GL_NOTEQUAL, 1, 0xFF));
-			GLCall(glStencilMask(0x00));
-			GLCall(glDisable(GL_DEPTH_TEST));
-
-			singleColorShader.Bind();
-
-			singleColorShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
-			singleColorShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
-
-			for (int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); i++)
-			{
-				glm::mat4 model = glm::mat4(1.0f);
-				model = glm::translate(model, cubePositions[i]);
-				float angle = 20.0f * (i + 1);
-				model = glm::rotate(model, glm::radians(angle) * (float)glfwGetTime(), glm::vec3(1.0f, 0.3f, 0.5f))
-					* glm::scale(glm::mat4(1.0f), glm::vec3(1.1f));
-				singleColorShader.SetUniformMat4f("u_model", model);
-				renderer.Draw(va, ib, singleColorShader);
-			}
-			//renderer.Draw(va, ib, lightingShader);
-			GLCall(glStencilMask(0xFF));
-			GLCall(glStencilFunc(GL_ALWAYS, 1, 0xFF));
-			GLCall(glEnable(GL_DEPTH_TEST));
-#endif
 			va.UnBind();
 			diffuseMap.UnBind();
+			specularMap.UnBind();
 			//////////////////
 
 			//LightObject
@@ -505,6 +565,24 @@ int main()
 			lightSrcShader.UnBind();
 			/////////////////////
 #endif
+			/*float pixel[4];
+			glReadPixels(s_ViewportSize.x / 2, s_ViewportSize.y / 2, 1, 1, GL_RGB, GL_FLOAT, pixel);
+			std::cout << "Center pixel color: " << pixel[0] << ", " << pixel[1] << ", " << pixel[2] << std::endl;*/
+
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glDisable(GL_DEPTH_TEST);
+
+			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			QuadScreenShader.Bind();
+			quadVA.Bind();
+			GLCall(glActiveTexture(GL_TEXTURE0));
+			glBindTexture(GL_TEXTURE_2D, colorAttachment);
+			QuadScreenShader.SetUniform1i("screenTexture", 0);
+			renderer.Draw(quadVA, quadIB, QuadScreenShader);
+			QuadScreenShader.UnBind();
+			quadVA.UnBind();
 
 			ImGui::Begin("FPS");
 
@@ -522,6 +600,9 @@ int main()
 
 			glfwSwapBuffers(window);
 		}
+
+		glDeleteRenderbuffers(1, &rbo);
+		glDeleteFramebuffers(1, &fbo);
 
 	}
 
