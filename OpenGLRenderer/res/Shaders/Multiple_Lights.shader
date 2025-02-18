@@ -17,6 +17,7 @@ uniform mat4 u_projection;
 
 void main()
 {
+
 	gl_Position = u_projection * u_view * u_model * vec4(v_position, 1.0);
 
 	o_TexCoords = v_TexCoords;
@@ -89,6 +90,7 @@ out vec4 FragColor;
 //Uniform Variables
 uniform vec3 u_viewPos;
 uniform Material material;
+uniform samplerCube u_Skybox;
 
 uniform DirLight dirLight;
 uniform PointLight pointLightList[4];
@@ -224,14 +226,23 @@ void main()
 		result += CalculateSpotLight(spotLightList[i], normal, viewDir, diffuseTexColor, specularTexColor);
 	}
 
+	//Fog
 	float depth = LogisticDepth(gl_FragCoord.z);
 	vec3 foggedColor = Fog(depth, result, vec3(0.85f, 0.85f, 0.90f));
 
-	#define FOG 0
-	#if FOG
-	FragColor = vec4(foggedColor, diffuseTexColor.a);
-	#else
-	FragColor = vec4((result), diffuseTexColor.a);
-	//FragColor = vec4(diffuseTexColor);
-	#endif
+
+	//Reflection
+	float ratio = 1.00 / 1.52;
+	vec3 I = normalize(o_FragPos - u_viewPos);
+	vec3 R = refract(I, normalize(normal), ratio);
+
+	FragColor = vec4(texture(u_Skybox, R).rgb, 1.0f);
+
+	// #define FOG 0
+	// #if FOG
+	// FragColor = vec4(foggedColor, diffuseTexColor.a);
+	// #else
+	// FragColor = vec4((result), diffuseTexColor.a);
+	// FragColor = vec4(diffuseTexColor);
+	// #endif
 }

@@ -13,6 +13,8 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+#include <stb_image.h>
+
 #include "Platforms/OpenGL/OpenGLRenderer.h"
 #include "Camera.h"
 
@@ -27,9 +29,11 @@ const float SCR_HEIGHT = 720.0f;
 
 static glm::vec2 s_ViewportSize{ SCR_WIDTH, SCR_HEIGHT };
 
-static void ProcessInput(GLFWwindow* window) {
+static void ProcessInput(GLFWwindow* window)
+{
 
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+	{
 		glfwSetWindowShouldClose(window, true);
 	}
 }
@@ -69,7 +73,8 @@ int main()
 	//TODO: Put all this in a  Window Class
 	bool isInitialized = glfwInit();
 
-	if (!isInitialized) {
+	if (!isInitialized)
+	{
 		std::cout << " Glfw not initialized" << std::endl;
 		return -1;
 	}
@@ -79,7 +84,8 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGLRenderer", NULL, NULL);
-	if (window == NULL) {
+	if (window == NULL)
+	{
 		std::cout << "Window not initialized" << std::endl;
 		glfwTerminate();
 		return -1;
@@ -87,7 +93,8 @@ int main()
 
 	glfwMakeContextCurrent(window);
 
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+	{
 		std::cout << "Glad Initialization Failed" << std::endl;
 		return -1;
 	}
@@ -116,31 +123,33 @@ int main()
 			glViewport(0, 0, width, height);
 		});
 
-	glfwSetCursorPosCallback(window, [](GLFWwindow* window, double xPos, double yPos) {
+	glfwSetCursorPosCallback(window, [](GLFWwindow* window, double xPos, double yPos)
+		{
 
-		PerspectiveCamera* camera = static_cast<PerspectiveCamera*>(glfwGetWindowUserPointer(window));
-		camera->SetCameraAngles(window, xPos, yPos);
-
-		});
-
-	glfwSetScrollCallback(window, [](GLFWwindow* window, double xOffset, double yOffset) {
-
-		PerspectiveCamera* camera = static_cast<PerspectiveCamera*>(glfwGetWindowUserPointer(window));
-		float fov = camera->GetFOV();
-		fov -= (float)yOffset;
-		fov = glm::clamp(fov, 1.0f, 70.0f);
-		camera->SetFOV(fov);
+			PerspectiveCamera* camera = static_cast<PerspectiveCamera*>(glfwGetWindowUserPointer(window));
+			camera->SetCameraAngles(window, xPos, yPos);
 
 		});
 
-		GLCall(glEnable(GL_DEPTH_TEST));
-		GLCall(glEnable(GL_STENCIL_TEST));
-		//GLCall(glEnable(GL_CULL_FACE));
-		//GLCall(glCullFace(GL_FRONT));
-		//GLCall(glFrontFace(GL_CW));
+	glfwSetScrollCallback(window, [](GLFWwindow* window, double xOffset, double yOffset)
+		{
 
-		GLCall(glEnable(GL_BLEND));
-		GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+			PerspectiveCamera* camera = static_cast<PerspectiveCamera*>(glfwGetWindowUserPointer(window));
+			float fov = camera->GetFOV();
+			fov -= (float)yOffset;
+			fov = glm::clamp(fov, 1.0f, 70.0f);
+			camera->SetFOV(fov);
+
+		});
+
+	GLCall(glEnable(GL_DEPTH_TEST));
+	GLCall(glEnable(GL_STENCIL_TEST));
+	//GLCall(glEnable(GL_CULL_FACE));
+	//GLCall(glCullFace(GL_FRONT));
+	//GLCall(glFrontFace(GL_CW));
+
+	GLCall(glEnable(GL_BLEND));
+	GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
 	{
 
@@ -217,7 +226,7 @@ int main()
 		OpenGLVertexArray va;
 
 		OpenGLVertexArray lightVA;
-		
+
 		//Assign the Vertex Buffer on the GPU
 		OpenGLVertexBuffer vb(sizeof(vertices), vertices);
 
@@ -258,7 +267,7 @@ int main()
 		va.UnBind();
 		lightVA.UnBind();
 		vb.UnBind();
-		
+
 		glm::vec3 cubePositions[] = {
 			glm::vec3(0.0f,  0.0f,  0.0f),
 			glm::vec3(2.0f,  5.0f, -15.0f),
@@ -290,10 +299,11 @@ int main()
 		bool show_demo_window = true;
 		bool show_another_window = false;
 		ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-		
+
 		OpenGLRenderer renderer;
 #endif
 
+		//FrameBuffer Creation 
 		//Quad Stuff
 		float QuadVertices[] = {
 			//Positions   //TexCoords
@@ -358,8 +368,135 @@ int main()
 		OpenGLShader QuadScreenShader("res/Shaders/FrameBufferScreen.shader");
 		QuadScreenShader.Bind();
 		QuadScreenShader.SetUniform1i("screenTexture", 0);
-		
+
 		quadVB.UnBind();
+
+		//Cubemap Stuff
+
+		float cm_vertices[] = {
+			// Positions
+			// Front face
+			-1.0f, -1.0f,  1.0f,// Bottom-left
+			 1.0f, -1.0f,  1.0f,// Bottom-right
+			 1.0f,  1.0f,  1.0f,// Top-right
+			-1.0f,  1.0f,  1.0f,// Top-left
+
+			// Back face
+			-1.0, -1.0, -1.0f,// Bottom-left
+			 1.0, -1.0, -1.0f,// Bottom-right
+			 1.0,  1.0, -1.0f,// Top-right
+			-1.0,  1.0, -1.0f,// Top-left
+
+			// Left face
+			-1.0f, -1.0f, -1.0f,// Bottom-left
+			-1.0f, -1.0f,  1.0f,// Bottom-right
+			-1.0f,  1.0f,  1.0f,// Top-right
+			-1.0f,  1.0f, -1.0f,// Top-left
+
+			// Right face
+			 1.0f, -1.0f, -1.0f,// Bottom-left
+			 1.0f, -1.0f,  1.0f,// Bottom-right
+			 1.0f,  1.0f,  1.0f,// Top-right
+			 1.0f,  1.0f, -1.0f,// Top-left
+
+			 // Top face
+			 -1.0f,  1.0f, -1.0f,// Bottom-left
+			  1.0f,  1.0f, -1.0f,// Bottom-right
+			  1.0f,  1.0f,  1.0f,// Top-right
+			 -1.0f,  1.0f,  1.0f,// Top-left
+
+			 // Bottom face
+			 -1.0f, -1.0f, -1.0f,// Bottom-left
+			  1.0f, -1.0f, -1.0f,// Bottom-right
+			  1.0f, -1.0f,  1.0f,// Top-right
+			 -1.0f, -1.0f,  1.0f,// Top-left
+		};
+
+		unsigned int cm_indices[] = {
+			// Front face
+			0, 2, 1,
+			2, 0, 3,
+
+			// Back face
+			4, 6, 5,
+			6, 4, 7,
+
+			// Left face
+			8, 10, 9,
+			10, 8, 11,
+
+			// Right face
+			12, 14, 13,
+			14, 12, 15,
+
+			// Top face
+			16, 18, 17,
+			18, 16, 19,
+
+			// Bottom face
+			20, 22, 21,
+			22, 20, 23
+		};
+
+		OpenGLVertexArray CubeMapVA;
+
+		//Assign the Vertex Buffer on the GPU
+		OpenGLVertexBuffer CubeMapVB(sizeof(cm_vertices), cm_vertices);
+
+		//Assign the Index Buffer on the GPU
+		OpenGLIndexBuffer CubeMapIB(sizeof(cm_indices) / sizeof(cm_indices[0]), cm_indices);
+
+		//Add Vertex Layouts
+		VertexBufferLayout CubeMapLayout;
+		CubeMapLayout.Push<float>(3); //Position Attribute
+		CubeMapVA.AddBuffer(CubeMapVB, CubeMapLayout);
+
+		//Create Fragment Shader
+		OpenGLShader CubeMapShader("res/Shaders/Skybox.shader");
+		CubeMapShader.Bind();
+		CubeMapShader.SetUniform1i("u_skybox", 0);
+
+		CubeMapVB.UnBind();
+
+		std::vector<std::string> faces
+		{
+			"res/Textures/Skybox/Lake/posx.jpg",
+			"res/Textures/Skybox/Lake/negx.jpg",
+			"res/Textures/Skybox/Lake/posy.jpg",
+			"res/Textures/Skybox/Lake/negy.jpg",
+			"res/Textures/Skybox/Lake/posz.jpg",
+			"res/Textures/Skybox/Lake/negz.jpg",
+		};
+
+		uint32_t CubeMapID;
+		glGenTextures(1, &CubeMapID);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, CubeMapID);
+
+		int cm_Width, cm_Height, cm_BPP;
+
+		for (int i = 0; i < faces.size(); i++)
+		{
+			stbi_set_flip_vertically_on_load(0);
+			unsigned char* LocalBuffer = stbi_load(faces[i].c_str(), &cm_Width, &cm_Height, &cm_BPP, 0);
+
+			if (LocalBuffer)
+			{
+				glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, cm_Width, cm_Height, 0, GL_RGB, GL_UNSIGNED_BYTE, LocalBuffer);
+				stbi_image_free(LocalBuffer);
+			}
+			else
+			{
+				ASSERT(false);
+				std::cout << "Cubemap tex failed to load at path: " << faces[i] << std::endl;
+				stbi_image_free(LocalBuffer);
+			}
+		}
+
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
 #if MODEL
 		OpenGLRenderer renderer;
@@ -387,9 +524,10 @@ int main()
 
 		SetupImGuiStyleWithRoundedBorders();
 
-		
 
-		while (!glfwWindowShouldClose(window)) {
+
+		while (!glfwWindowShouldClose(window))
+		{
 
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
@@ -397,11 +535,11 @@ int main()
 
 			ProcessInput(window);
 
-			GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-			renderer.Clear();
+			//GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+			//renderer.Clear();
 
-			glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-			glEnable(GL_DEPTH_TEST);
+			//glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+			//glEnable(GL_DEPTH_TEST);
 
 			renderer.Clear();
 
@@ -413,10 +551,13 @@ int main()
 
 			ModelShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
 			ModelShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
+			//ModelShader.SetUniform1i("u_Skybox", 0);
 
 			glm::mat4 matModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f))
 				* glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
 			ModelShader.SetUniformMat4f("u_model", matModel);
+			//glActiveTexture(GL_TEXTURE0);
+			//glBindTexture(GL_TEXTURE_CUBE_MAP, CubeMapID);
 
 			model.Draw(ModelShader);
 
@@ -434,20 +575,20 @@ int main()
 
 			//RecieverObject
 			lightingShader.Bind();
-			diffuseMap.Bind();
-			lightingShader.SetUniform1i("material.diffuse", 0);
+			//diffuseMap.Bind();
+			//lightingShader.SetUniform1i("material.diffuse", 0);
 
-			
-			specularMap.Bind(1);
-			lightingShader.SetUniform1i("material.specular", 1);
+
+			//specularMap.Bind(1);
+			//lightingShader.SetUniform1i("material.specular", 1);
 
 			/*emissionMap.Bind(2);
 			lightingShader.SetUniform1i("material.emission", 2);*/
 
-			lightingShader.SetUniform1f("material.shininess", 64.0f);
-			
+			//lightingShader.SetUniform1f("material.shininess", 64.0f);
+
 			// directional light
-			lightingShader.SetUniformVec3f("dirLight.direction", glm::vec3(- 0.2f, -1.0f, -0.3f));
+			lightingShader.SetUniformVec3f("dirLight.direction", glm::vec3(-0.2f, -1.0f, -0.3f));
 			lightingShader.SetUniformVec3f("dirLight.ambient", glm::vec3(0.05f));
 			lightingShader.SetUniformVec3f("dirLight.diffuse", glm::vec3(0.5f));
 			lightingShader.SetUniformVec3f("dirLight.specular", glm::vec3(0.5f));
@@ -511,22 +652,25 @@ int main()
 
 			lightingShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
 			lightingShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
+			lightingShader.SetUniform1i("u_Skybox", 0);
 
 			glm::mat4 model = glm::mat4(1.0f);
 			//lightingShader.SetUniformMat4f("u_model", model);
 
 			va.Bind();
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, CubeMapID);
 			for (int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); i++)
 			{
 				glm::mat4 model = glm::mat4(1.0f);
 				model = glm::translate(model, cubePositions[i]);
 				float angle = 10.0f * (i + 1);
-				model = glm::rotate(model, glm::radians(angle) * (float)glfwGetTime(), glm::vec3(1.0f, 0.3f, 0.5f)) 
+				model = glm::rotate(model, glm::radians(angle)/* * (float)glfwGetTime()*/, glm::vec3(1.0f, 0.3f, 0.5f))
 					* glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
 				lightingShader.SetUniformMat4f("u_model", model);
 				renderer.Draw(va, ib, lightingShader);
 			}
-			
+
 			lightingShader.UnBind();
 			va.UnBind();
 			diffuseMap.UnBind();
@@ -535,22 +679,24 @@ int main()
 
 			//LightObject
 			lightSrcShader.Bind();
-			
+
 			lightSrcShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
 			lightSrcShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
 			lightSrcShader.SetUniformVec3f("u_lightColor", lightColor);
 
 			lightVA.Bind();
-			
-			for (int i = 0; i < (sizeof(pointLightPositions) + sizeof(spotLightPositions)) / sizeof(glm::vec3); i++) 
+
+			for (int i = 0; i < (sizeof(pointLightPositions) + sizeof(spotLightPositions)) / sizeof(glm::vec3); i++)
 			{
 				model = glm::mat4(1.0f);
 
 				glm::vec3 position(0.0f);
-				if (i < 4) {
+				if (i < 4)
+				{
 					position = pointLightPositions[i];
 				}
-				else {
+				else
+				{
 					position = spotLightPositions[i - 4];
 				}
 
@@ -560,16 +706,13 @@ int main()
 				lightSrcShader.SetUniformMat4f("u_model", model);
 				renderer.Draw(lightVA, ib, lightSrcShader);
 			}
-			
+
 			lightVA.UnBind();
 			lightSrcShader.UnBind();
 			/////////////////////
 #endif
-			/*float pixel[4];
-			glReadPixels(s_ViewportSize.x / 2, s_ViewportSize.y / 2, 1, 1, GL_RGB, GL_FLOAT, pixel);
-			std::cout << "Center pixel color: " << pixel[0] << ", " << pixel[1] << ", " << pixel[2] << std::endl;*/
-
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			//FrameBuffer Stuff
+			/*glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			glDisable(GL_DEPTH_TEST);
 
 			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -582,7 +725,25 @@ int main()
 			QuadScreenShader.SetUniform1i("screenTexture", 0);
 			renderer.Draw(quadVA, quadIB, QuadScreenShader);
 			QuadScreenShader.UnBind();
-			quadVA.UnBind();
+			quadVA.UnBind();*/
+
+			//CubeMap
+			glDepthFunc(GL_LEQUAL);
+			CubeMapShader.Bind();
+
+			glm::mat4 view = glm::mat4(glm::mat3(Camera->GetViewMatrix()));
+
+			CubeMapShader.SetUniformMat4f("u_view", view);
+			CubeMapShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
+
+			CubeMapVA.Bind();
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, CubeMapID);
+			renderer.Draw(CubeMapVA, CubeMapIB, CubeMapShader);
+
+			CubeMapShader.UnBind();
+			CubeMapVA.UnBind();
+			glDepthFunc(GL_LESS);
 
 			ImGui::Begin("FPS");
 
@@ -604,7 +765,7 @@ int main()
 		glDeleteRenderbuffers(1, &rbo);
 		glDeleteFramebuffers(1, &fbo);
 
-	}
+}
 
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
