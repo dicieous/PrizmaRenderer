@@ -23,6 +23,7 @@
 #define BOXES 1
 #define MODEL 0
 #define OUTLINE 0
+#define GEOMETRY 0
 
 const float SCR_WIDTH = 1280.0f;
 const float SCR_HEIGHT = 720.0f;
@@ -263,6 +264,33 @@ int main()
 		//Texture2D emissionMap("res/Textures/matrix.jpg");
 		//emissionMap.Bind(2);
 
+		//Uniform Buffer Objects
+		uint32_t ubo;
+		glGenBuffers(1, &ubo);
+		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+		glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), nullptr, GL_STATIC_DRAW);
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+		glBindBufferRange(GL_UNIFORM_BUFFER, 0, ubo, 0, 2 * sizeof(glm::mat4));
+
+		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(Camera->GetViewMatrix()));
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(Camera->GetProjectionMatrix()));
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+		//Light's UBOs
+		uint32_t lightUBO;
+		glGenBuffers(1, &lightUBO);
+		glBindBuffer(GL_UNIFORM_BUFFER, lightUBO);
+		glBufferData(GL_UNIFORM_BUFFER, 640, nullptr, GL_STATIC_DRAW);
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+		glBindBufferRange(GL_UNIFORM_BUFFER, 1, lightUBO, 0, 640);
+
+
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 		va.UnBind();
@@ -499,37 +527,40 @@ int main()
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-		//Uniform Buffer Objects
-		uint32_t ubo;
-		glGenBuffers(1, &ubo);
-		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-		glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), nullptr, GL_STATIC_DRAW);
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+#if GEOMETRY
+		//Geometry Shader
+		float points[] = {
+			//Positions   //Color
+			-0.5f,  0.5f, 1.0f, 0.0f, 0.0f,// top-left
+			 0.5f,  0.5f, 0.0f, 1.0f, 0.0f,// top-right
+			 0.5f, -0.5f, 0.0f, 0.0f, 1.0f,// bottom-right
+			-0.5f, -0.5f, 1.0f, 1.0f, 0.0f,// bottom-left
+		};
 
-		glBindBufferRange(GL_UNIFORM_BUFFER, 0, ubo, 0, 2 * sizeof(glm::mat4));
+		//VertexArray
+		OpenGLVertexArray GeometryVAO;
 
-		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(Camera->GetViewMatrix()));
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+		//VertexBuffer
+		OpenGLVertexBuffer GeometryVB(sizeof(points), points);
 
-		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(Camera->GetProjectionMatrix()));
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+		//VertexBufferLayout
+		VertexBufferLayout GeometryLayout;
+		GeometryLayout.Push<float>(2);
+		GeometryLayout.Push<float>(3);
+		GeometryVAO.AddBuffer(GeometryVB, GeometryLayout);
 
-		//Light's UBOs
-		uint32_t lightUBO;
-		glGenBuffers(1, &lightUBO);
-		glBindBuffer(GL_UNIFORM_BUFFER, lightUBO);
-		glBufferData(GL_UNIFORM_BUFFER, 640, nullptr, GL_STATIC_DRAW);
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-		glBindBufferRange(GL_UNIFORM_BUFFER, 1, lightUBO, 0, 640);
+		OpenGLShader GeometryShader("res/Shaders/GeometryShader.shader");
+		OpenGLRenderer renderer;
+#endif
 
 #if MODEL
 		OpenGLRenderer renderer;
 
 		OpenGLShader ModelShader("res/Shaders/Model_Loading.shader");
 		ModelShader.Bind();
+		
+		OpenGLShader ModelNormalsVisualizerShader("res/Shaders/Model_Normals.shader");
+		ModelNormalsVisualizerShader.Bind();
 
 		Model model("res/Models/backpack/backpack.obj");
 
@@ -578,6 +609,8 @@ int main()
 
 			ModelShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
 			ModelShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
+
+			ModelShader.SetUniform1f("u_time", glfwGetTime());
 			//ModelShader.SetUniform1i("u_Skybox", 0);
 
 			glm::mat4 matModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f))
@@ -587,8 +620,16 @@ int main()
 			//glBindTexture(GL_TEXTURE_CUBE_MAP, CubeMapID);
 
 			model.Draw(ModelShader);
-
 			ModelShader.UnBind();
+			
+			ModelNormalsVisualizerShader.Bind();
+			ModelNormalsVisualizerShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
+			ModelNormalsVisualizerShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
+			ModelNormalsVisualizerShader.SetUniformMat4f("u_model", matModel);
+
+			model.Draw(ModelNormalsVisualizerShader);
+			ModelNormalsVisualizerShader.UnBind();
+
 #endif
 
 #if BOXES
@@ -615,14 +656,14 @@ int main()
 			lightingShader.SetUniform1f("material.shininess", 64.0f);
 
 			// Offsets
-			const uint32_t PointLightOffset = 64;
-			const uint32_t SpotLightOffset = 384;
-
 			const uint32_t PointLightStride = 80;
 			const uint32_t SpotLightStride = 112;
 
 			const uint32_t PointLightCount = 4;
 			const uint32_t SpotLightCount = 2;
+			
+			const uint32_t PointLightOffset = 64; //DirectionalLightStride
+			const uint32_t SpotLightOffset = 384; // PointLighCount * PointLighStride + DirectionalLightStride
 
 			// Directional Light
 			glBindBuffer(GL_UNIFORM_BUFFER, lightUBO);
@@ -651,17 +692,18 @@ int main()
 			}
 
 			// Spot Lights
-			float cutOff = glm::cos(glm::radians(12.5f));
-			float outerCutOff = glm::cos(glm::radians(15.0f));
+			float cutOff = glm::cos(glm::radians(8.5f));
+			float outerCutOff = glm::cos(glm::radians(10.0f));
 
 			for (int i = 0; i < SpotLightCount; i++)
 			{
 				size_t offset = SpotLightOffset + i * SpotLightStride;
 
 				glBufferSubData(GL_UNIFORM_BUFFER, offset, sizeof(glm::vec3), glm::value_ptr(spotLightPositions[i])); // position
-				glBufferSubData(GL_UNIFORM_BUFFER, offset + 16, sizeof(glm::vec3), glm::value_ptr(glm::vec3(0.0f))); // ambient
-				glBufferSubData(GL_UNIFORM_BUFFER, offset + 48, sizeof(glm::vec3), glm::value_ptr(glm::vec3(1.0f))); // diffuse
-				glBufferSubData(GL_UNIFORM_BUFFER, offset + 64, sizeof(glm::vec3), glm::value_ptr(glm::vec3(1.2f))); // specular
+				glBufferSubData(GL_UNIFORM_BUFFER, offset + 16, sizeof(glm::vec3), glm::value_ptr(glm::normalize(-spotLightPositions[i]))); // direction
+				glBufferSubData(GL_UNIFORM_BUFFER, offset + 32, sizeof(glm::vec3), glm::value_ptr(glm::vec3(0.0f))); // ambient
+				glBufferSubData(GL_UNIFORM_BUFFER, offset + 48, sizeof(glm::vec3), glm::value_ptr(glm::vec3(2.0f))); // diffuse
+				glBufferSubData(GL_UNIFORM_BUFFER, offset + 64, sizeof(glm::vec3), glm::value_ptr(glm::vec3(1.8f))); // specular
 
 				glBufferSubData(GL_UNIFORM_BUFFER, offset + 80, sizeof(float), &constant);
 				glBufferSubData(GL_UNIFORM_BUFFER, offset + 84, sizeof(float), &linear);
@@ -741,6 +783,16 @@ int main()
 			lightSrcShader.UnBind();
 			/////////////////////
 #endif
+
+#if GEOMETRY
+			//GeometryShader
+			GeometryVAO.Bind();
+			GeometryVB.Bind();
+			GeometryShader.Bind();
+
+			glDrawArrays(GL_POINTS, 0, 4);
+#endif
+
 			//FrameBuffer Stuff
 			/*glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			glDisable(GL_DEPTH_TEST);

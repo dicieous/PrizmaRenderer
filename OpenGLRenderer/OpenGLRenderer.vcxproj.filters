@@ -508,6 +508,8 @@
     <None Include="res\Shaders\SingleColorShader.shader" />
     <None Include="res\Shaders\FrameBufferScreen.shader" />
     <None Include="res\Shaders\Skybox.shader" />
+    <None Include="res\Shaders\GeometryShader.shader" />
+    <None Include="res\Shaders\Model_Normals.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vendor\GLFW\include\GLFW\glfw3.h">

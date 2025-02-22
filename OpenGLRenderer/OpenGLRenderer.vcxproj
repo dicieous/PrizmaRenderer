@@ -116,11 +116,13 @@
   <ItemGroup>
     <None Include="res\Shaders\Basic.shader" />
     <None Include="res\Shaders\FrameBufferScreen.shader" />
+    <None Include="res\Shaders\GeometryShader.shader" />
     <None Include="res\Shaders\LightCube.shader" />
     <None Include="res\Shaders\Lighting.shader" />
     <None Include="res\Shaders\Lighting_Maps.shader" />
     <None Include="res\Shaders\Light_Casters.shader" />
     <None Include="res\Shaders\Model_Loading.shader" />
+    <None Include="res\Shaders\Model_Normals.shader" />
     <None Include="res\Shaders\Multiple_Lights.shader" />
     <None Include="res\Shaders\SingleColorShader.shader" />
     <None Include="res\Shaders\Skybox.shader" />

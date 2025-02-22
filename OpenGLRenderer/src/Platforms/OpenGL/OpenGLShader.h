@@ -7,11 +7,12 @@
 struct ShaderSouce {
 	std::string VertexSource;
 	std::string FragmentSource;
+	std::string GeometrySource;
 };
 
 class OpenGLShader {
 public:
-	OpenGLShader(const std::string& vertexSrc, const std::string& fragmentSrc);
+	OpenGLShader(const std::string& vertexSrc, const std::string& fragmentSrc, const std::string& geometrySource = "");
 	OpenGLShader(const std::string& filePath);
 
 	~OpenGLShader();
@@ -34,7 +35,8 @@ public:
 private:
 	unsigned int CompileShader(const unsigned int type, const std::string& shaderSource);
 	ShaderSouce ParseShader(const std::string& filePath);
-	unsigned int CreateShader(const std::string& vertexSrc, const std::string& fragmentSrc);
+
+	unsigned int CreateShader(const std::string& vertexSrc, const std::string& fragmentSrc, const std::string& geometrySrc = "");
 
 	unsigned int GetUniformLocation(const std::string& name);
 	
