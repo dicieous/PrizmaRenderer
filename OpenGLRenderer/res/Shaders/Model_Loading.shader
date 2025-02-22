@@ -28,23 +28,17 @@ void main()
 #type fragment
 #version 330 core
 
-struct Material
-{
-	sampler2D texture_diffuse1;
-};
-
 out vec4 FragColor;
 
 in vec2 o_TexCoords;
 
-uniform samplerCube u_Skybox;
-uniform Material material;
+uniform sampler2D texture_diffuse1;
 
 void main()
 {
 	//Reflection
-	vec3 I = normalize(o_FragPos - u_viewPos);
-	vec3 R = reflect(I, normalize(normal));
+	//vec3 I = normalize(o_FragPos - u_viewPos);
+	//vec3 R = reflect(I, normalize(normal));
 
-	FragColor = vec4(texture(u_Skybox, R).rgb, 1.0f);
+	FragColor = texture(texture_diffuse1, o_TexCoords);
 }

@@ -19,6 +19,8 @@ public:
 	void Bind() const;
 	void UnBind() const;
 
+	uint32_t GetRendererID() const { return m_RendererID; }
+
 	//SetUniforms
 	void SetUniform1i(const std::string& name, int value);
 

@@ -1,34 +1,41 @@
 #type vertex
-#version 330 core
+#version 450 core
 
 layout(location = 0) in vec3 v_position;
 layout(location = 1) in vec3 v_normal;
 layout(location = 2) in vec2 v_TexCoords;
 
 //Normal and World Fragment Position
-out vec3 o_Normal;
-out vec3 o_FragPos;
-out vec2 o_TexCoords;
+out VS_OUT
+{
+	vec3 o_Normal;
+	vec3 o_FragPos;
+	vec2 o_TexCoords;
+}vs_out;
 
 //mvp Matrices
 uniform mat4 u_model;
-uniform mat4 u_view;	
-uniform mat4 u_projection;
+layout(std140, binding = 0) uniform Camera
+{
+	mat4 u_view;	
+	mat4 u_projection;
+};
 
 void main()
 {
 
 	gl_Position = u_projection * u_view * u_model * vec4(v_position, 1.0);
+	gl_PointSize = gl_Position.z;
 
-	o_TexCoords = v_TexCoords;
+	vs_out.o_TexCoords = v_TexCoords;
 
-	o_Normal = mat3(transpose(inverse(u_model))) * v_normal;
-	o_FragPos = vec3(u_model * vec4(v_position, 1.0f));
+	vs_out.o_Normal = mat3(transpose(inverse(u_model))) * v_normal;
+	vs_out.o_FragPos = vec3(u_model * vec4(v_position, 1.0f));
 }
 
 
 #type fragment
-#version 330 core
+#version 450 core
 
 struct Material
 {
@@ -40,49 +47,52 @@ struct Material
 };
 
 struct DirLight
-{
-	vec3 direction;
+{					//Offsets
+	vec3 direction;  //0
 	
-	vec3 ambient;
-	vec3 diffuse;
-	vec3 specular;
-};
+	vec3 ambient;   //16
+	vec3 diffuse;   //32
+	vec3 specular;  //48
+}; //64 bytes
 
 struct PointLight
-{
-	vec3 position;
+{					//Offsets
+	vec3 position;  //0
 	
-	vec3 ambient;
-	vec3 diffuse;
-	vec3 specular;
+	vec3 ambient;   //16
+	vec3 diffuse;   //32
+	vec3 specular;	//48
 
-	float constant;
-    float linear;
-    float quadratic;
-};
+	float constant; //64
+    float linear;   //68
+    float quadratic; //72  
+}; //80 bytes
 
 struct SpotLight
-{
-	vec3 position;
-	vec3 direction;
+{					//Offsets				
+	vec3 position; //0
+	vec3 direction;//16
 	
-	vec3 ambient;
-	vec3 diffuse;
-	vec3 specular;
+	vec3 ambient;  //32
+	vec3 diffuse;  //48
+	vec3 specular; //64
 
-	float constant;
-    float linear;
-    float quadratic;
+	float constant; //80
+    float linear;  //84
+    float quadratic; //88
 
-	float cutOff;
-	float outerCutOff;
-};
+	float cutOff;  //92
+	float outerCutOff;//96 
+};// 112 bytes
 
 
 //Input Variables from Vertex Shader
-in vec3 o_Normal;
-in vec3 o_FragPos;
-in vec2 o_TexCoords;
+in VS_OUT
+{
+	vec3 o_Normal;
+	vec3 o_FragPos;
+	vec2 o_TexCoords;
+}fs_in;
 
 //Output Color
 out vec4 FragColor;
@@ -90,11 +100,18 @@ out vec4 FragColor;
 //Uniform Variables
 uniform vec3 u_viewPos;
 uniform Material material;
-uniform samplerCube u_Skybox;
+//uniform samplerCube u_Skybox;
 
-uniform DirLight dirLight;
-uniform PointLight pointLightList[4];
-uniform SpotLight spotLightList[2];
+layout(std140, binding = 1) uniform Light
+{
+	DirLight dirLight; //0
+	PointLight pointLightList[4]; //304
+	SpotLight spotLightList[2]; //496
+}; // 640 bytes
+
+//uniform DirLight dirLight;
+//uniform PointLight pointLightList[4];
+//uniform SpotLight spotLightList[2];
 
 //Light Calculations
 vec3 AmbientLight(vec4 diffuseTexColor)
@@ -138,9 +155,9 @@ vec3 CalculateDirLight(DirLight light, vec3 normal, vec3 viewDir, vec4 diffuseTe
 
 vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 viewDir, vec4 diffuseTexColor, vec3 specularTexColor)
 {
-	vec3 lightDir = normalize(light.position - o_FragPos);
+	vec3 lightDir = normalize(light.position - fs_in.o_FragPos);
 	
-	float distance = length(light.position - o_FragPos);
+	float distance = length(light.position - fs_in.o_FragPos);
 	float attenuation = 1.0f/ (light.constant + light.linear + light.quadratic * (distance * distance));
 
 	vec3 ambient = light.ambient * diffuseTexColor.rgb;
@@ -156,9 +173,9 @@ vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 viewDir, vec4 diffu
 
 vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 viewDir, vec4 diffuseTexColor, vec3 specularTexColor)
 {
-	vec3 lightDir = normalize(light.position - o_FragPos);
+	vec3 lightDir = normalize(light.position - fs_in.o_FragPos);
 
-	float distance = length(light.position - o_FragPos);
+	float distance = length(light.position - fs_in.o_FragPos);
 	float attenuation = 1.0f/ (light.constant + light.linear + light.quadratic * (distance * distance));
 
 	float theta = dot(lightDir, normalize(-light.direction));
@@ -201,14 +218,14 @@ vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 viewDir, vec4 diffuse
 
 void main()
 {
-	vec3 normal = normalize(o_Normal);
-	vec3 viewDir = normalize(u_viewPos - o_FragPos);
+	vec3 normal = normalize(fs_in.o_Normal);
+	vec3 viewDir = normalize(u_viewPos - fs_in.o_FragPos);
 
-	vec4 diffuseTexColor = texture(material.diffuse, o_TexCoords);
-	vec3 specularTexColor = texture(material.specular, o_TexCoords).rgb;
+	vec4 diffuseTexColor = texture(material.diffuse, fs_in.o_TexCoords);
+	vec3 specularTexColor = texture(material.specular, fs_in.o_TexCoords).rgb;
 
 	//Use emission map only
-	//vec3 emissionTexColor = texture(material.emission, o_TexCoords).rgb;
+	//vec3 emissionTexColor = texture(material.emission, fs_in.o_TexCoords).rgb;
 	vec3 emissionTexColor = vec3(0.0f);
 	
 	//Result
@@ -233,16 +250,15 @@ void main()
 
 	//Reflection
 	float ratio = 1.00 / 1.52;
-	vec3 I = normalize(o_FragPos - u_viewPos);
+	vec3 I = normalize(fs_in.o_FragPos - u_viewPos);
 	vec3 R = refract(I, normalize(normal), ratio);
 
-	FragColor = vec4(texture(u_Skybox, R).rgb, 1.0f);
+	//FragColor = vec4(texture(u_Skybox, R).rgb, 1.0f);
 
-	// #define FOG 0
-	// #if FOG
-	// FragColor = vec4(foggedColor, diffuseTexColor.a);
-	// #else
-	// FragColor = vec4((result), diffuseTexColor.a);
-	// FragColor = vec4(diffuseTexColor);
-	// #endif
+	#define FOG 0
+	#if FOG
+	FragColor = vec4(foggedColor, diffuseTexColor.a);
+	#else
+	FragColor = vec4((result), diffuseTexColor.a);
+	#endif
 }
