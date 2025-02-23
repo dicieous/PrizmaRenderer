@@ -261,4 +261,6 @@ void main()
 	#else
 	FragColor = vec4((result), diffuseTexColor.a);
 	#endif
+
+	//FragColor = vec4(0.8f, 0.1f, 0.1f, 1.0f);
 }

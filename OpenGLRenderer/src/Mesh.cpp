@@ -42,13 +42,13 @@ void Mesh::Draw(OpenGLShader& shader)
 
 void Mesh::SetupMesh()
 {
-	m_VertexArray = std::make_shared<OpenGLVertexArray>();
+	m_VertexArray = std::make_unique<OpenGLVertexArray>();
 	m_VertexArray->Bind();
 
-	m_VertexBuffer = std::make_shared<OpenGLVertexBuffer>(m_Vertices.size() * sizeof(Vertex), m_Vertices.data());
+	m_VertexBuffer = std::make_unique<OpenGLVertexBuffer>(m_Vertices.size() * sizeof(Vertex), m_Vertices.data());
 	m_VertexBuffer->Bind();
 
-	m_IndexBuffer = std::make_shared<OpenGLIndexBuffer>( m_Indices.size(), m_Indices.data());
+	m_IndexBuffer = std::make_unique<OpenGLIndexBuffer>( m_Indices.size(), m_Indices.data());
 	m_IndexBuffer->Bind();
 
 	VertexBufferLayout layout;

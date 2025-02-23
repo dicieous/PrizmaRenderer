@@ -17,7 +17,7 @@ public:
 	Model(const std::string& filePath);
 
 	void Draw(OpenGLShader& shader);
-	std::vector<Mesh> GetMeshesList() const { return m_Meshes; }
+
 	std::vector<Texture> GetTextureList() const { return m_Texture_Loaded; }
 
 private:

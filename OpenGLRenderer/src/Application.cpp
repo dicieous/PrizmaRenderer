@@ -20,7 +20,7 @@
 
 #include "Model.h"
 
-#define BOXES 0
+#define BOXES 1
 #define MODEL 0
 #define OUTLINE 0
 #define GEOMETRY 0
@@ -83,6 +83,7 @@ int main()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_SAMPLES, 4);
 
 	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGLRenderer", NULL, NULL);
 	if (window == NULL)
@@ -150,6 +151,7 @@ int main()
 	//GLCall(glFrontFace(GL_CW));
 
 	GLCall(glEnable(GL_BLEND));
+	GLCall(glEnable(GL_MULTISAMPLE));
 	GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 	GLCall(glEnable(GL_PROGRAM_POINT_SIZE));
 
@@ -352,32 +354,52 @@ int main()
 		GLCall(glGenFramebuffers(1, &fbo));
 		GLCall(glBindFramebuffer(GL_FRAMEBUFFER, fbo));
 
-		uint32_t colorAttachment;
-		GLCall(glGenTextures(1, &colorAttachment));
-		GLCall(glBindTexture(GL_TEXTURE_2D, colorAttachment));
+		uint32_t multiSampledColorAttachment;
+		GLCall(glGenTextures(1, &multiSampledColorAttachment));
+		GLCall(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, multiSampledColorAttachment));
 
-		GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr));
+		GLCall(glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGB, SCR_WIDTH, SCR_HEIGHT, GL_TRUE));
+		GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, multiSampledColorAttachment, 0));
 
-		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-
-		GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorAttachment, 0));
-		GLCall(glBindTexture(GL_TEXTURE_2D, 0));
+		GLCall(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0));
 
 		//Create RenderBuffer
 		uint32_t rbo;
 		GLCall(glGenRenderbuffers(1, &rbo));
 		GLCall(glBindRenderbuffer(GL_RENDERBUFFER, rbo));
-		GLCall(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT));
+		GLCall(glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT));
 		GLCall(glBindRenderbuffer(GL_RENDERBUFFER, 0));
-
-		GLCall(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo));
+		
+		GLCall(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo)); //Attach to framebuffer
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		{
 			std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
 			ASSERT((glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE));
 		}
 		GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+
+		//Intermediate FrameBuffer
+		uint32_t intermediateFBO;
+		GLCall(glGenFramebuffers(1, &intermediateFBO));
+		GLCall(glBindFramebuffer(GL_FRAMEBUFFER, intermediateFBO));
+
+		uint32_t intermediateColorAttachment;
+		GLCall(glGenTextures(1, &intermediateColorAttachment));
+		GLCall(glBindTexture(GL_TEXTURE_2D, intermediateColorAttachment));
+
+		GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr));
+
+		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+		GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, intermediateColorAttachment, 0));
+
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		{
+			std::cout << "ERROR::FRAMEBUFFER:: IntermediateFramebuffer is not complete!" << std::endl;
+			ASSERT((glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE));
+		}
+		//GLCall(glBindTexture(GL_TEXTURE_2D, 0));
 
 		OpenGLVertexArray quadVA;
 
@@ -580,76 +602,7 @@ int main()
 		InstancedVB2.UnBind();
 		glVertexAttribDivisor(2, 1);
 
-		OpenGLRenderer renderer;
-
-		//Asteroid Field
-		OpenGLShader planetShader("res/Shaders/Model_Loading.shader");
-		planetShader.Bind();
-		Model planetModel("res/Models/planet/planet.obj");
-
-		OpenGLShader AsteroidShader("res/Shaders/InstancedAsteroid.shader");
-		AsteroidShader.Bind();
-		Model AsteroidModel("res/Models/rock/rock.obj");
-
-		//std::vector<Mesh> meshList = AsteroidModel.GetMeshesList();
-
-		uint32_t amount = 100000;
-		glm::mat4* modelMatrices;
-		modelMatrices = new glm::mat4[amount];
-		srand(glfwGetTime()); // initialize random seed	
-		float radius = 150.0f;
-		float AsteroidOffset = 25.0f;
-		for (uint32_t i = 0; i < amount; i++)
-		{
-			glm::mat4 model = glm::mat4(1.0f);
-			// 1. translation: displace along circle with 'radius' in range [-AsteroidOffset, AsteroidOffset]
-			float angle = (float)i / (float)amount * 360.0f;
-			float displacement = (rand() % (int)(2 * AsteroidOffset * 100)) / 100.0f - AsteroidOffset;
-			float x = sin(angle) * radius + displacement;
-			displacement = (rand() % (int)(2 * AsteroidOffset * 100)) / 100.0f - AsteroidOffset;
-			float y = displacement * 0.4f; // keep height of field smaller compared to width of x and z
-			displacement = (rand() % (int)(2 * AsteroidOffset * 100)) / 100.0f - AsteroidOffset;
-			float z = cos(angle) * radius + displacement;
-			model = glm::translate(model, glm::vec3(x, y, z));
-
-			// 2. scale: scale between 0.05 and 0.25f
-			float scale = (rand() % 20) / 100.0f + 0.05;
-			model = glm::scale(model, glm::vec3(scale));
-
-			// 3. rotation: add random rotation around a (semi)randomly picked rotation axis vector
-			float rotAngle = (rand() % 360);
-			model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
-
-			// 4. now add to list of matrices
-			modelMatrices[i] = model;
-		}
-
-
-		OpenGLVertexBuffer AsteroidInstancedVB(amount * sizeof(glm::mat4), modelMatrices);
-
-		for (unsigned int i = 0; i < AsteroidModel.GetMeshesList().size(); i++)
-		{
-			unsigned int VAO = AsteroidModel.GetMeshesList()[i].GetMeshVAORendererID();
-			glBindVertexArray(VAO);
-			// vertex attributes
-			std::size_t vec4Size = sizeof(glm::vec4);
-			glEnableVertexAttribArray(3);
-			glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)0);
-			glEnableVertexAttribArray(4);
-			glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(1 * vec4Size));
-			glEnableVertexAttribArray(5);
-			glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(2 * vec4Size));
-			glEnableVertexAttribArray(6);
-			glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(3 * vec4Size));
-
-			glVertexAttribDivisor(3, 1);
-			glVertexAttribDivisor(4, 1);
-			glVertexAttribDivisor(5, 1);
-			glVertexAttribDivisor(6, 1);
-
-			glBindVertexArray(0);
-		}
-
+		//OpenGLRenderer renderer;
 
 
 #if GEOMETRY
@@ -719,10 +672,11 @@ int main()
 			ProcessInput(window);
 
 			//GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-			//renderer.Clear();
+			
+			renderer.Clear();
 
-			//glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-			//glEnable(GL_DEPTH_TEST);
+			glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+			glEnable(GL_DEPTH_TEST);
 
 			renderer.Clear();
 
@@ -856,7 +810,7 @@ int main()
 				glm::mat4 model = glm::mat4(1.0f);
 				model = glm::translate(model, cubePositions[i]);
 				float angle = 10.0f * (i + 1);
-				model = glm::rotate(model, glm::radians(angle) * (float)glfwGetTime(), glm::vec3(1.0f, 0.3f, 0.5f))
+				model = glm::rotate(model, glm::radians(angle) /** (float)glfwGetTime()*/, glm::vec3(1.0f, 0.3f, 0.5f))
 					* glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
 				lightingShader.SetUniformMat4f("u_model", model);
 				renderer.Draw(va, ib, lightingShader);
@@ -917,41 +871,26 @@ int main()
 			glDrawArrays(GL_POINTS, 0, 4);
 #endif
 
-			glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -3.0f, 0.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(4.0f, 4.0f, 4.0f));
-			
-			planetShader.Bind();
-			planetShader.SetUniformMat4f("u_model", model);
-			planetModel.Draw(planetShader);
-			planetShader.UnBind();
-
-			AsteroidShader.Bind();
-			//AsteroidShader.SetUniform1i("texture_diffuse1", 0);
-			//glActiveTexture(GL_TEXTURE0);
-			//glBindTexture(GL_TEXTURE_2D, AsteroidModel.GetTextureList()[0].Texture->GetRendererID());
-			for (uint32_t i = 0; i < AsteroidModel.GetMeshesList().size(); i++)
-			{
-				glBindVertexArray(AsteroidModel.GetMeshesList()[i].GetMeshVAORendererID());
-				glDrawElementsInstanced(GL_TRIANGLES, static_cast<uint32_t>(AsteroidModel.GetMeshesList()[i].GetIndicesList().size()), GL_UNSIGNED_INT, 0, amount);
-				glBindVertexArray(0);
-			}
-			AsteroidShader.UnBind();
-
 			//FrameBuffer Stuff
-			/*glBindFramebuffer(GL_FRAMEBUFFER, 0);
-			glDisable(GL_DEPTH_TEST);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO);
+			glBlitFramebuffer(0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			//renderer.Clear();
 
 			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			glClear(GL_COLOR_BUFFER_BIT);
+			glDisable(GL_DEPTH_TEST);
 
 			QuadScreenShader.Bind();
 			quadVA.Bind();
 			GLCall(glActiveTexture(GL_TEXTURE0));
-			glBindTexture(GL_TEXTURE_2D, colorAttachment);
+			glBindTexture(GL_TEXTURE_2D, intermediateColorAttachment);
 			QuadScreenShader.SetUniform1i("screenTexture", 0);
 			renderer.Draw(quadVA, quadIB, QuadScreenShader);
 			QuadScreenShader.UnBind();
-			quadVA.UnBind();*/
+			quadVA.UnBind();
 
 			//CubeMap
 			/*glDepthFunc(GL_LEQUAL);
@@ -990,7 +929,6 @@ int main()
 
 		glDeleteRenderbuffers(1, &rbo);
 		glDeleteFramebuffers(1, &fbo);
-		delete[] modelMatrices;
 	}
 
 	ImGui_ImplOpenGL3_Shutdown();

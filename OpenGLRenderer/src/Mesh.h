@@ -52,9 +52,6 @@ public:
 
 	void Draw(OpenGLShader& shader);
 
-	uint32_t GetMeshVAORendererID() const { return m_VertexArray->GetRendererID(); }
-	std::vector<uint32_t> GetIndicesList() const { return m_Indices; }
-
 private:
 	void SetupMesh();
 
@@ -64,7 +61,7 @@ public:
 	std::vector<Texture> m_Textures;
 
 private:
-	std::shared_ptr<OpenGLVertexArray> m_VertexArray;
-	std::shared_ptr<OpenGLVertexBuffer> m_VertexBuffer;
-	std::shared_ptr<OpenGLIndexBuffer> m_IndexBuffer;
+	std::unique_ptr<OpenGLVertexArray> m_VertexArray;
+	std::unique_ptr<OpenGLVertexBuffer> m_VertexBuffer;
+	std::unique_ptr<OpenGLIndexBuffer> m_IndexBuffer;
 };
