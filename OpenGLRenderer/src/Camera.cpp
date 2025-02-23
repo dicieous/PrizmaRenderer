@@ -8,7 +8,7 @@
 PerspectiveCamera::PerspectiveCamera(float width, float height)
 	:m_ScreenWidth(width), m_ScreenHeight(height), 
 	m_FOV(45.0f), m_ProjectionMatrix(glm::perspective(glm::radians(m_FOV), width / height, 0.1f, 100.0f)), m_ViewMatrix(1.0f),
-	m_NearPlane(0.1f), m_FarPlane(100.0f), m_LastX(width * 0.5f), m_LastY(height * 0.5f)
+	m_NearPlane(0.1f), m_FarPlane(1000.0f), m_LastX(width * 0.5f), m_LastY(height * 0.5f)
 {
 	m_ViewProjectionMatrix = m_ProjectionMatrix * m_ViewMatrix;
 }

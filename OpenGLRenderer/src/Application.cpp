@@ -20,7 +20,7 @@
 
 #include "Model.h"
 
-#define BOXES 1
+#define BOXES 0
 #define MODEL 0
 #define OUTLINE 0
 #define GEOMETRY 0
@@ -264,23 +264,6 @@ int main()
 		//Texture2D emissionMap("res/Textures/matrix.jpg");
 		//emissionMap.Bind(2);
 
-		//Uniform Buffer Objects
-		uint32_t ubo;
-		glGenBuffers(1, &ubo);
-		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-		glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), nullptr, GL_STATIC_DRAW);
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-		glBindBufferRange(GL_UNIFORM_BUFFER, 0, ubo, 0, 2 * sizeof(glm::mat4));
-
-		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(Camera->GetViewMatrix()));
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(Camera->GetProjectionMatrix()));
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
 		//Light's UBOs
 		uint32_t lightUBO;
 		glGenBuffers(1, &lightUBO);
@@ -331,6 +314,23 @@ int main()
 
 		OpenGLRenderer renderer;
 #endif
+
+		//Uniform Buffer Objects
+		uint32_t ubo;
+		glGenBuffers(1, &ubo);
+		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+		glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), nullptr, GL_STATIC_DRAW);
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+		glBindBufferRange(GL_UNIFORM_BUFFER, 0, ubo, 0, 2 * sizeof(glm::mat4));
+
+		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(Camera->GetViewMatrix()));
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(Camera->GetProjectionMatrix()));
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 		//FrameBuffer Creation 
 		//Quad Stuff
@@ -527,6 +527,131 @@ int main()
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
+		//Instancing
+		float Inst_vertices[] = {
+			// Positions
+			// Front face  //Color
+			-0.05f, -0.05f,  1.0f, 0.0f, 0.0f,// Bottom-left
+			 0.05f, -0.05f,  0.0f, 1.0f, 0.0f,// Bottom-right
+			 0.05f,  0.05f,  0.0f, 0.0f, 1.0f,// Top-right
+			-0.05f,  0.05f,  0.0f, 1.0f, 1.0f,// Top-left
+		};
+
+		unsigned int Inst_indices[] = {
+			// Front face
+			0, 1, 2,
+			2, 3, 0,
+		};
+
+		OpenGLVertexArray InstanceVA;
+
+		OpenGLVertexBuffer InstanceVB(sizeof(Inst_vertices), Inst_vertices);
+
+		OpenGLIndexBuffer InstanceIB(sizeof(Inst_indices) / sizeof(Inst_indices[0]), Inst_indices);
+
+		VertexBufferLayout InstanceLayout;
+		InstanceLayout.Push<float>(2);
+		InstanceLayout.Push<float>(3);
+
+		InstanceVA.AddBuffer(InstanceVB, InstanceLayout);
+
+		OpenGLShader InstanceShader("res/Shaders/Instance.shader");
+		InstanceShader.Bind();
+
+		glm::vec2 translations[100];
+		int index = 0;
+		float offset = 0.1f;
+
+		for (int y = -10; y < 10; y += 2)
+		{
+			for (int x = -10; x < 10; x += 2)
+			{
+				glm::vec2 translation;
+				translation.x = (float)x / 10.0f + offset;
+				translation.y = (float)y / 10.0f + offset;
+				translations[index++] = translation;
+			}
+		}
+
+		OpenGLVertexBuffer InstancedVB2(sizeof(glm::vec2) * 100, translations);
+		glEnableVertexAttribArray(2);
+		InstancedVB2.Bind();
+		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+		InstancedVB2.UnBind();
+		glVertexAttribDivisor(2, 1);
+
+		OpenGLRenderer renderer;
+
+		//Asteroid Field
+		OpenGLShader planetShader("res/Shaders/Model_Loading.shader");
+		planetShader.Bind();
+		Model planetModel("res/Models/planet/planet.obj");
+
+		OpenGLShader AsteroidShader("res/Shaders/InstancedAsteroid.shader");
+		AsteroidShader.Bind();
+		Model AsteroidModel("res/Models/rock/rock.obj");
+
+		//std::vector<Mesh> meshList = AsteroidModel.GetMeshesList();
+
+		uint32_t amount = 100000;
+		glm::mat4* modelMatrices;
+		modelMatrices = new glm::mat4[amount];
+		srand(glfwGetTime()); // initialize random seed	
+		float radius = 150.0f;
+		float AsteroidOffset = 25.0f;
+		for (uint32_t i = 0; i < amount; i++)
+		{
+			glm::mat4 model = glm::mat4(1.0f);
+			// 1. translation: displace along circle with 'radius' in range [-AsteroidOffset, AsteroidOffset]
+			float angle = (float)i / (float)amount * 360.0f;
+			float displacement = (rand() % (int)(2 * AsteroidOffset * 100)) / 100.0f - AsteroidOffset;
+			float x = sin(angle) * radius + displacement;
+			displacement = (rand() % (int)(2 * AsteroidOffset * 100)) / 100.0f - AsteroidOffset;
+			float y = displacement * 0.4f; // keep height of field smaller compared to width of x and z
+			displacement = (rand() % (int)(2 * AsteroidOffset * 100)) / 100.0f - AsteroidOffset;
+			float z = cos(angle) * radius + displacement;
+			model = glm::translate(model, glm::vec3(x, y, z));
+
+			// 2. scale: scale between 0.05 and 0.25f
+			float scale = (rand() % 20) / 100.0f + 0.05;
+			model = glm::scale(model, glm::vec3(scale));
+
+			// 3. rotation: add random rotation around a (semi)randomly picked rotation axis vector
+			float rotAngle = (rand() % 360);
+			model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
+
+			// 4. now add to list of matrices
+			modelMatrices[i] = model;
+		}
+
+
+		OpenGLVertexBuffer AsteroidInstancedVB(amount * sizeof(glm::mat4), modelMatrices);
+
+		for (unsigned int i = 0; i < AsteroidModel.GetMeshesList().size(); i++)
+		{
+			unsigned int VAO = AsteroidModel.GetMeshesList()[i].GetMeshVAORendererID();
+			glBindVertexArray(VAO);
+			// vertex attributes
+			std::size_t vec4Size = sizeof(glm::vec4);
+			glEnableVertexAttribArray(3);
+			glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)0);
+			glEnableVertexAttribArray(4);
+			glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(1 * vec4Size));
+			glEnableVertexAttribArray(5);
+			glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(2 * vec4Size));
+			glEnableVertexAttribArray(6);
+			glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(3 * vec4Size));
+
+			glVertexAttribDivisor(3, 1);
+			glVertexAttribDivisor(4, 1);
+			glVertexAttribDivisor(5, 1);
+			glVertexAttribDivisor(6, 1);
+
+			glBindVertexArray(0);
+		}
+
+
+
 #if GEOMETRY
 		//Geometry Shader
 		float points[] = {
@@ -558,9 +683,9 @@ int main()
 
 		OpenGLShader ModelShader("res/Shaders/Model_Loading.shader");
 		ModelShader.Bind();
-		
-		OpenGLShader ModelNormalsVisualizerShader("res/Shaders/Model_Normals.shader");
-		ModelNormalsVisualizerShader.Bind();
+
+		//OpenGLShader ModelNormalsVisualizerShader("res/Shaders/Model_Normals.shader");
+		//ModelNormalsVisualizerShader.Bind();
 
 		Model model("res/Models/backpack/backpack.obj");
 
@@ -610,7 +735,7 @@ int main()
 			ModelShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
 			ModelShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
 
-			ModelShader.SetUniform1f("u_time", glfwGetTime());
+			//ModelShader.SetUniform1f("u_time", glfwGetTime());
 			//ModelShader.SetUniform1i("u_Skybox", 0);
 
 			glm::mat4 matModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f))
@@ -621,14 +746,14 @@ int main()
 
 			model.Draw(ModelShader);
 			ModelShader.UnBind();
-			
-			ModelNormalsVisualizerShader.Bind();
-			ModelNormalsVisualizerShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
-			ModelNormalsVisualizerShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
-			ModelNormalsVisualizerShader.SetUniformMat4f("u_model", matModel);
 
-			model.Draw(ModelNormalsVisualizerShader);
-			ModelNormalsVisualizerShader.UnBind();
+			//ModelNormalsVisualizerShader.Bind();
+			//ModelNormalsVisualizerShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
+			//ModelNormalsVisualizerShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
+			//ModelNormalsVisualizerShader.SetUniformMat4f("u_model", matModel);
+
+			//model.Draw(ModelNormalsVisualizerShader);
+			//ModelNormalsVisualizerShader.UnBind();
 
 #endif
 
@@ -661,7 +786,7 @@ int main()
 
 			const uint32_t PointLightCount = 4;
 			const uint32_t SpotLightCount = 2;
-			
+
 			const uint32_t PointLightOffset = 64; //DirectionalLightStride
 			const uint32_t SpotLightOffset = 384; // PointLighCount * PointLighStride + DirectionalLightStride
 
@@ -718,12 +843,6 @@ int main()
 			lightingShader.Bind();
 			lightingShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
 
-			glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-			glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(Camera->GetViewMatrix()));
-		
-			glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(Camera->GetProjectionMatrix()));
-			glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
 			//lightingShader.SetUniform1i("u_Skybox", 0);
 
 			glm::mat4 model = glm::mat4(1.0f);
@@ -777,12 +896,17 @@ int main()
 
 				lightSrcShader.SetUniformMat4f("u_model", model);
 				renderer.Draw(lightVA, ib, lightSrcShader);
-			}
+		}
 
 			lightVA.UnBind();
 			lightSrcShader.UnBind();
 			/////////////////////
 #endif
+			glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+			glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(Camera->GetViewMatrix()));
+
+			glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(Camera->GetProjectionMatrix()));
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 #if GEOMETRY
 			//GeometryShader
@@ -792,6 +916,26 @@ int main()
 
 			glDrawArrays(GL_POINTS, 0, 4);
 #endif
+
+			glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -3.0f, 0.0f))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(4.0f, 4.0f, 4.0f));
+			
+			planetShader.Bind();
+			planetShader.SetUniformMat4f("u_model", model);
+			planetModel.Draw(planetShader);
+			planetShader.UnBind();
+
+			AsteroidShader.Bind();
+			//AsteroidShader.SetUniform1i("texture_diffuse1", 0);
+			//glActiveTexture(GL_TEXTURE0);
+			//glBindTexture(GL_TEXTURE_2D, AsteroidModel.GetTextureList()[0].Texture->GetRendererID());
+			for (uint32_t i = 0; i < AsteroidModel.GetMeshesList().size(); i++)
+			{
+				glBindVertexArray(AsteroidModel.GetMeshesList()[i].GetMeshVAORendererID());
+				glDrawElementsInstanced(GL_TRIANGLES, static_cast<uint32_t>(AsteroidModel.GetMeshesList()[i].GetIndicesList().size()), GL_UNSIGNED_INT, 0, amount);
+				glBindVertexArray(0);
+			}
+			AsteroidShader.UnBind();
 
 			//FrameBuffer Stuff
 			/*glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -846,7 +990,7 @@ int main()
 
 		glDeleteRenderbuffers(1, &rbo);
 		glDeleteFramebuffers(1, &fbo);
-
+		delete[] modelMatrices;
 	}
 
 	ImGui_ImplOpenGL3_Shutdown();

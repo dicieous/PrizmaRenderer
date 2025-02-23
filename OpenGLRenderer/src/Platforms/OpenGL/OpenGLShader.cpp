@@ -202,6 +202,11 @@ void OpenGLShader::SetUniformMat4f(const std::string& name, const glm::mat4& mat
 	GLCall(glUniformMatrix4fv(GetUniformLocation(name), 1, GL_FALSE, glm::value_ptr(matrix)));
 }
 
+void OpenGLShader::SetUniformVec2f(const std::string& name, const glm::vec2& value)
+{
+	GLCall(glUniform2fv(GetUniformLocation(name), 1, glm::value_ptr(value)));
+}
+
 void OpenGLShader::SetUniformVec3f(const std::string& name, const glm::vec3& value)
 {
 	GLCall(glUniform3fv(GetUniformLocation(name), 1, glm::value_ptr(value)));

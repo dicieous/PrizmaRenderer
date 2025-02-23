@@ -11,11 +11,11 @@ layout(std140, binding = 0) uniform Camera
 	mat4 u_projection;
 };
 
-
 void main()
 {
 	gl_Position = u_projection * u_view * u_model * vec4(v_position, 1.0);
 }
+
 
 #type fragment
 #version 450 core

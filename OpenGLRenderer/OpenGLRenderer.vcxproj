@@ -117,6 +117,8 @@
     <None Include="res\Shaders\Basic.shader" />
     <None Include="res\Shaders\FrameBufferScreen.shader" />
     <None Include="res\Shaders\GeometryShader.shader" />
+    <None Include="res\Shaders\Instance.shader" />
+    <None Include="res\Shaders\InstancedAsteroid.shader" />
     <None Include="res\Shaders\LightCube.shader" />
     <None Include="res\Shaders\Lighting.shader" />
     <None Include="res\Shaders\Lighting_Maps.shader" />

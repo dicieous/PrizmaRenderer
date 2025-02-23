@@ -15,8 +15,9 @@ public:
 	 void UnBind() const;
 
 	void AddBuffer(const OpenGLVertexBuffer& vb, const VertexBufferLayout& layout);
+	uint32_t GetRendererID() const { return m_RendererID; }
 
 private:
-	unsigned int m_RendererID;
+	uint32_t m_RendererID;
 	unsigned int m_AttributeIndex = 0;
 };
