@@ -23,7 +23,7 @@ Texture2D::Texture2D(const std::string& filePath)
 		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
 		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
 
-		GLint texWrappingMode = m_BPP == 4 ? GL_CLAMP_TO_EDGE : GL_CLAMP_TO_BORDER;
+		GLint texWrappingMode = m_BPP == 4 ? GL_CLAMP_TO_EDGE : GL_REPEAT;
 
 		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, texWrappingMode));
 		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, texWrappingMode));

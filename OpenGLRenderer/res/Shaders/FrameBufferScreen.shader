@@ -76,5 +76,6 @@ void main()
 		color += sampleTex[i] * KernelBlur[i];
 	}
 
-	FragColor = vec4(color, 1.0);
+	//FragColor = vec4(color, 1.0);
+	FragColor = texture(screenTexture, o_texCoords);
 }

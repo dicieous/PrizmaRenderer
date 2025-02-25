@@ -105,7 +105,7 @@ uniform Material material;
 layout(std140, binding = 1) uniform Light
 {
 	DirLight dirLight; //0
-	PointLight pointLightList[4]; //304
+	PointLight pointLightList[5]; //304
 	SpotLight spotLightList[2]; //496
 }; // 640 bytes
 
@@ -121,7 +121,7 @@ vec3 AmbientLight(vec4 diffuseTexColor)
 
 vec3 DiffuseLight(vec3 normal, vec3 lightDir, vec4 diffuseTexColor)
 {
-	float diff = max(dot(lightDir, normal), 0.0f);
+	float diff = max(dot(lightDir, normal), 0.0);
 	return (diffuseTexColor.rgb * diff);
 }
 
@@ -129,7 +129,9 @@ vec3 SpecularLight(vec3 normal, vec3 viewDir, vec3 lightDir, vec3 specularTexCol
 {
 	vec3 reflectDir = reflect(-lightDir, normal);
 
-	float spec = pow(max(dot(reflectDir, viewDir), 0.0f), material.shininess);
+	vec3 halfwayDir = normalize(lightDir + viewDir);
+
+	float spec = pow(max(dot(normal, halfwayDir), 0.0f), material.shininess);
 	return (specularTexColor * spec);
 }
 
@@ -158,7 +160,7 @@ vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 viewDir, vec4 diffu
 	vec3 lightDir = normalize(light.position - fs_in.o_FragPos);
 	
 	float distance = length(light.position - fs_in.o_FragPos);
-	float attenuation = 1.0f/ (light.constant + light.linear + light.quadratic * (distance * distance));
+	float attenuation = 1.0f/ (light.constant + light.linear * distance + light.quadratic * (distance * distance));
 
 	vec3 ambient = light.ambient * diffuseTexColor.rgb;
 	vec3 diffuse = light.diffuse * DiffuseLight(normal, lightDir, diffuseTexColor);
@@ -168,6 +170,11 @@ vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 viewDir, vec4 diffu
 	diffuse *= attenuation;
 	specular *= attenuation;
 
+	  if(dot(normal, lightDir) < 0.0) 
+	  {
+        diffuse = vec3(0.0f);
+        specular = vec3(0.0f);
+	 }	
 	return (ambient + diffuse + specular);
 }
 
@@ -176,7 +183,7 @@ vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 viewDir, vec4 diffuse
 	vec3 lightDir = normalize(light.position - fs_in.o_FragPos);
 
 	float distance = length(light.position - fs_in.o_FragPos);
-	float attenuation = 1.0f/ (light.constant + light.linear + light.quadratic * (distance * distance));
+	float attenuation = 1.0f/ (light.constant + light.linear * distance + light.quadratic * (distance * distance));
 
 	float theta = dot(lightDir, normalize(-light.direction));
 	float epsilon = light.cutOff - light.outerCutOff;
@@ -219,6 +226,7 @@ vec3 CalculateSpotLight(SpotLight light, vec3 normal, vec3 viewDir, vec4 diffuse
 void main()
 {
 	vec3 normal = normalize(fs_in.o_Normal);
+
 	vec3 viewDir = normalize(u_viewPos - fs_in.o_FragPos);
 
 	vec4 diffuseTexColor = texture(material.diffuse, fs_in.o_TexCoords);
@@ -233,7 +241,7 @@ void main()
 	vec3 result = vec3(0.0f);
 	result += CalculateDirLight(dirLight, normal, viewDir, diffuseTexColor, specularTexColor);
 
-	for(int i = 0; i < 4; i++)
+	for(int i = 0; i < 5; i++)
 	{
 		result += CalculatePointLight(pointLightList[i], normal, viewDir, diffuseTexColor, specularTexColor);
 	}
