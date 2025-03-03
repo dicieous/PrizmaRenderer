@@ -22,8 +22,6 @@
 
 #define BOXES 1
 #define MODEL 0
-#define OUTLINE 0
-#define GEOMETRY 0
 
 const float SCR_WIDTH = 1280.0f;
 const float SCR_HEIGHT = 720.0f;
@@ -267,13 +265,25 @@ int main()
 		//emissionMap.Bind(2);
 
 		//Light's UBOs
+
+		// Offsets
+		const uint32_t DirectionalStride = 64;
+		const uint32_t PointLightStride = 80;
+		const uint32_t SpotLightStride = 112;
+
+		const uint32_t PointLightCount = 4;
+		const uint32_t SpotLightCount = 2;
+
+		const uint32_t PointLightOffset = DirectionalStride; //DirectionalLightStride
+		const uint32_t SpotLightOffset = PointLightCount * PointLightStride + PointLightOffset; // PointLighCount * PointLighStride + DirectionalLightStride
+
 		uint32_t lightUBO;
 		glGenBuffers(1, &lightUBO);
 		glBindBuffer(GL_UNIFORM_BUFFER, lightUBO);
-		glBufferData(GL_UNIFORM_BUFFER, 688, nullptr, GL_STATIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, 640, nullptr, GL_STATIC_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-		glBindBufferRange(GL_UNIFORM_BUFFER, 1, lightUBO, 0, 688);
+		glBindBufferRange(GL_UNIFORM_BUFFER, 1, lightUBO, 0, 640);
 
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -284,10 +294,10 @@ int main()
 
 		float woodQuadVertices[] = {
 			// position          //Normals			  //TexCoords
-			 25.0f,  -0.5f,  25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 0.0f,// Top-right
-			-25.0f,  -0.5f,  25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,// Top-left
-			-25.0f,  -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 25.0f,// Bottom-left
-			 25.0f,  -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 25.0f,// Bottom-right
+			 25.0f, -0.5f,  25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 0.0f,// Top-right
+			-25.0f, -0.5f,  25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,// Top-left
+			-25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 25.0f,// Bottom-left
+			 25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 25.0f,// Bottom-right
 		};
 		
 		uint32_t woodQuadIndices[] = {
@@ -330,11 +340,11 @@ int main()
 		};
 
 		glm::vec3 pointLightPositions[] = {
-			glm::vec3(0.7f,  0.2f,  2.0f),
-			glm::vec3(2.3f, -3.3f, -4.0f),
+			glm::vec3(0.4f,  1.5f,  -0.5f),
+			glm::vec3(2.3f, -2.3f, -4.0f),
 			glm::vec3(-4.0f,  2.0f, -12.0f),
 			glm::vec3(0.0f,  0.0f, -3.0f),
-			glm::vec3(0.0f,  -6.0f, 0.0f),
+			//glm::vec3(0.0f,  -6.0f, 0.0f),
 		};
 
 		glm::vec3 spotLightPositions[] = {
@@ -369,302 +379,93 @@ int main()
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(Camera->GetProjectionMatrix()));
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-		////FrameBuffer Creation 
-		////Quad Stuff
-		//float QuadVertices[] = {
-		//	//Positions   //TexCoords
-		//	-1.0f,  1.0f, 0.0f, 1.0f,
-		//	-1.0f, -1.0f, 0.0f, 0.0f,
-		//	 1.0f,  1.0f, 1.0f, 1.0f,
-		//	 1.0f, -1.0f, 1.0f, 0.0f,
-		//};
-
-		//uint32_t QuadIndices[] = {
-		//	0, 1, 2,
-		//	1, 3 ,2,
-		//};
-
-		////Create Framebuffers
-		//uint32_t fbo;
-		//GLCall(glGenFramebuffers(1, &fbo));
-		//GLCall(glBindFramebuffer(GL_FRAMEBUFFER, fbo));
-
-		//uint32_t multiSampledColorAttachment;
-		//GLCall(glGenTextures(1, &multiSampledColorAttachment));
-		//GLCall(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, multiSampledColorAttachment));
-
-		//GLCall(glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGB, SCR_WIDTH, SCR_HEIGHT, GL_TRUE));
-		//GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, multiSampledColorAttachment, 0));
-
-		//GLCall(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0));
-
-		////Create RenderBuffer
-		//uint32_t rbo;
-		//GLCall(glGenRenderbuffers(1, &rbo));
-		//GLCall(glBindRenderbuffer(GL_RENDERBUFFER, rbo));
-		//GLCall(glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT));
-		//GLCall(glBindRenderbuffer(GL_RENDERBUFFER, 0));
-		//
-		//GLCall(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo)); //Attach to framebuffer
-		//if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		//{
-		//	std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
-		//	ASSERT((glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE));
-		//}
-		//GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-
-		////Intermediate FrameBuffer
-		//uint32_t intermediateFBO;
-		//GLCall(glGenFramebuffers(1, &intermediateFBO));
-		//GLCall(glBindFramebuffer(GL_FRAMEBUFFER, intermediateFBO));
-
-		//uint32_t intermediateColorAttachment;
-		//GLCall(glGenTextures(1, &intermediateColorAttachment));
-		//GLCall(glBindTexture(GL_TEXTURE_2D, intermediateColorAttachment));
-
-		//GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr));
-
-		//GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-		//GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-
-		//GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, intermediateColorAttachment, 0));
-
-		//if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		//{
-		//	std::cout << "ERROR::FRAMEBUFFER:: IntermediateFramebuffer is not complete!" << std::endl;
-		//	ASSERT((glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE));
-		//}
-		////GLCall(glBindTexture(GL_TEXTURE_2D, 0));
-
-		//OpenGLVertexArray quadVA;
-
-		////Assign the Vertex Buffer on the GPU
-		//OpenGLVertexBuffer quadVB(sizeof(QuadVertices), QuadVertices);
-
-		////Assign the Index Buffer on the GPU
-		//OpenGLIndexBuffer quadIB(sizeof(QuadIndices) / sizeof(QuadIndices[0]), QuadIndices);
-
-		////Add Vertex Layouts
-		//VertexBufferLayout quadLayout;
-		//quadLayout.Push<float>(2); //Position Attribute
-		//quadLayout.Push<float>(2); //Texture Attribute
-		//quadVA.AddBuffer(quadVB, quadLayout);
-
-		////Create Fragment Shader
-		//OpenGLShader QuadScreenShader("res/Shaders/FrameBufferScreen.shader");
-		//QuadScreenShader.Bind();
-		//QuadScreenShader.SetUniform1i("screenTexture", 0);
-
-		//quadVB.UnBind();
-
-		//Cubemap Stuff
-
-		float cm_vertices[] = {
-			// Positions
-			// Front face
-			-1.0f, -1.0f,  1.0f,// Bottom-left
-			 1.0f, -1.0f,  1.0f,// Bottom-right
-			 1.0f,  1.0f,  1.0f,// Top-right
-			-1.0f,  1.0f,  1.0f,// Top-left
-
-			// Back face
-			-1.0, -1.0, -1.0f,// Bottom-left
-			 1.0, -1.0, -1.0f,// Bottom-right
-			 1.0,  1.0, -1.0f,// Top-right
-			-1.0,  1.0, -1.0f,// Top-left
-
-			// Left face
-			-1.0f, -1.0f, -1.0f,// Bottom-left
-			-1.0f, -1.0f,  1.0f,// Bottom-right
-			-1.0f,  1.0f,  1.0f,// Top-right
-			-1.0f,  1.0f, -1.0f,// Top-left
-
-			// Right face
-			 1.0f, -1.0f, -1.0f,// Bottom-left
-			 1.0f, -1.0f,  1.0f,// Bottom-right
-			 1.0f,  1.0f,  1.0f,// Top-right
-			 1.0f,  1.0f, -1.0f,// Top-left
-
-			 // Top face
-			 -1.0f,  1.0f, -1.0f,// Bottom-left
-			  1.0f,  1.0f, -1.0f,// Bottom-right
-			  1.0f,  1.0f,  1.0f,// Top-right
-			 -1.0f,  1.0f,  1.0f,// Top-left
-
-			 // Bottom face
-			 -1.0f, -1.0f, -1.0f,// Bottom-left
-			  1.0f, -1.0f, -1.0f,// Bottom-right
-			  1.0f, -1.0f,  1.0f,// Top-right
-			 -1.0f, -1.0f,  1.0f,// Top-left
+		//FrameBuffer Creation 
+		//Quad Stuff
+		float QuadVertices[] = {
+			//Positions   //TexCoords
+			-1.0f,  1.0f, 0.0f, 1.0f,
+			-1.0f, -1.0f, 0.0f, 0.0f,
+			 1.0f,  1.0f, 1.0f, 1.0f,
+			 1.0f, -1.0f, 1.0f, 0.0f,
 		};
 
-		unsigned int cm_indices[] = {
-			// Front face
-			0, 2, 1,
-			2, 0, 3,
-
-			// Back face
-			4, 6, 5,
-			6, 4, 7,
-
-			// Left face
-			8, 10, 9,
-			10, 8, 11,
-
-			// Right face
-			12, 14, 13,
-			14, 12, 15,
-
-			// Top face
-			16, 18, 17,
-			18, 16, 19,
-
-			// Bottom face
-			20, 22, 21,
-			22, 20, 23
+		uint32_t QuadIndices[] = {
+			0, 1, 2,
+			1, 3 ,2,
 		};
 
-		OpenGLVertexArray CubeMapVA;
+		//Create Framebuffers
+		uint32_t fbo;
+		GLCall(glGenFramebuffers(1, &fbo));
+		GLCall(glBindFramebuffer(GL_FRAMEBUFFER, fbo));
+
+		uint32_t multiSampledColorAttachment;
+		GLCall(glGenTextures(1, &multiSampledColorAttachment));
+		GLCall(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, multiSampledColorAttachment));
+
+		GLCall(glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGB, SCR_WIDTH, SCR_HEIGHT, GL_TRUE));
+		GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, multiSampledColorAttachment, 0));
+
+		GLCall(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0));
+
+		//Create RenderBuffer
+		uint32_t rbo;
+		GLCall(glGenRenderbuffers(1, &rbo));
+		GLCall(glBindRenderbuffer(GL_RENDERBUFFER, rbo));
+		GLCall(glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT));
+		GLCall(glBindRenderbuffer(GL_RENDERBUFFER, 0));
+		
+		GLCall(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo)); //Attach to framebuffer
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		{
+			std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+			ASSERT((glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE));
+		}
+		GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+
+		//Intermediate FrameBuffer
+		uint32_t intermediateFBO;
+		GLCall(glGenFramebuffers(1, &intermediateFBO));
+		GLCall(glBindFramebuffer(GL_FRAMEBUFFER, intermediateFBO));
+
+		uint32_t intermediateColorAttachment;
+		GLCall(glGenTextures(1, &intermediateColorAttachment));
+		GLCall(glBindTexture(GL_TEXTURE_2D, intermediateColorAttachment));
+
+		GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr));
+
+		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+		GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, intermediateColorAttachment, 0));
+
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		{
+			std::cout << "ERROR::FRAMEBUFFER:: IntermediateFramebuffer is not complete!" << std::endl;
+			ASSERT((glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE));
+		}
+		GLCall(glBindTexture(GL_TEXTURE_2D, 0));
+
+		OpenGLVertexArray quadVA;
 
 		//Assign the Vertex Buffer on the GPU
-		OpenGLVertexBuffer CubeMapVB(sizeof(cm_vertices), cm_vertices);
+		OpenGLVertexBuffer quadVB(sizeof(QuadVertices), QuadVertices);
 
 		//Assign the Index Buffer on the GPU
-		OpenGLIndexBuffer CubeMapIB(sizeof(cm_indices) / sizeof(cm_indices[0]), cm_indices);
+		OpenGLIndexBuffer quadIB(sizeof(QuadIndices) / sizeof(QuadIndices[0]), QuadIndices);
 
 		//Add Vertex Layouts
-		VertexBufferLayout CubeMapLayout;
-		CubeMapLayout.Push<float>(3); //Position Attribute
-		CubeMapVA.AddBuffer(CubeMapVB, CubeMapLayout);
+		VertexBufferLayout quadLayout;
+		quadLayout.Push<float>(2); //Position Attribute
+		quadLayout.Push<float>(2); //Texture Attribute
+		quadVA.AddBuffer(quadVB, quadLayout);
 
 		//Create Fragment Shader
-		OpenGLShader CubeMapShader("res/Shaders/Skybox.shader");
-		CubeMapShader.Bind();
-		CubeMapShader.SetUniform1i("u_skybox", 0);
+		OpenGLShader QuadScreenShader("res/Shaders/FrameBufferScreen.shader");
+		QuadScreenShader.Bind();
+		QuadScreenShader.SetUniform1i("screenTexture", 0);
 
-		CubeMapVB.UnBind();
-
-		std::vector<std::string> faces
-		{
-			"res/Textures/Skybox/Lake/posx.jpg",
-			"res/Textures/Skybox/Lake/negx.jpg",
-			"res/Textures/Skybox/Lake/posy.jpg",
-			"res/Textures/Skybox/Lake/negy.jpg",
-			"res/Textures/Skybox/Lake/posz.jpg",
-			"res/Textures/Skybox/Lake/negz.jpg",
-		};
-
-		uint32_t CubeMapID;
-		glGenTextures(1, &CubeMapID);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, CubeMapID);
-
-		int cm_Width, cm_Height, cm_BPP;
-
-		for (int i = 0; i < faces.size(); i++)
-		{
-			stbi_set_flip_vertically_on_load(0);
-			unsigned char* LocalBuffer = stbi_load(faces[i].c_str(), &cm_Width, &cm_Height, &cm_BPP, 0);
-
-			if (LocalBuffer)
-			{
-				glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, cm_Width, cm_Height, 0, GL_RGB, GL_UNSIGNED_BYTE, LocalBuffer);
-				stbi_image_free(LocalBuffer);
-			}
-			else
-			{
-				ASSERT(false);
-				std::cout << "Cubemap tex failed to load at path: " << faces[i] << std::endl;
-				stbi_image_free(LocalBuffer);
-			}
-		}
-
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-		//Instancing
-		//float Inst_vertices[] = {
-		//	// Positions
-		//	// Front face  //Color
-		//	-0.05f, -0.05f,  1.0f, 0.0f, 0.0f,// Bottom-left
-		//	 0.05f, -0.05f,  0.0f, 1.0f, 0.0f,// Bottom-right
-		//	 0.05f,  0.05f,  0.0f, 0.0f, 1.0f,// Top-right
-		//	-0.05f,  0.05f,  0.0f, 1.0f, 1.0f,// Top-left
-		//};
-
-		//unsigned int Inst_indices[] = {
-		//	// Front face
-		//	0, 1, 2,
-		//	2, 3, 0,
-		//};
-
-		//OpenGLVertexArray InstanceVA;
-
-		//OpenGLVertexBuffer InstanceVB(sizeof(Inst_vertices), Inst_vertices);
-
-		//OpenGLIndexBuffer InstanceIB(sizeof(Inst_indices) / sizeof(Inst_indices[0]), Inst_indices);
-
-		//VertexBufferLayout InstanceLayout;
-		//InstanceLayout.Push<float>(2);
-		//InstanceLayout.Push<float>(3);
-
-		//InstanceVA.AddBuffer(InstanceVB, InstanceLayout);
-
-		//OpenGLShader InstanceShader("res/Shaders/Instance.shader");
-		//InstanceShader.Bind();
-
-		//glm::vec2 translations[100];
-		//int index = 0;
-		//float offset = 0.1f;
-
-		//for (int y = -10; y < 10; y += 2)
-		//{
-		//	for (int x = -10; x < 10; x += 2)
-		//	{
-		//		glm::vec2 translation;
-		//		translation.x = (float)x / 10.0f + offset;
-		//		translation.y = (float)y / 10.0f + offset;
-		//		translations[index++] = translation;
-		//	}
-		//}
-
-		//OpenGLVertexBuffer InstancedVB2(sizeof(glm::vec2) * 100, translations);
-		//glEnableVertexAttribArray(2);
-		//InstancedVB2.Bind();
-		//glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-		//InstancedVB2.UnBind();
-		//glVertexAttribDivisor(2, 1);
-
-		//OpenGLRenderer renderer;
-
-
-#if GEOMETRY
-		//Geometry Shader
-		float points[] = {
-			//Positions   //Color
-			-0.5f,  0.5f, 1.0f, 0.0f, 0.0f,// top-left
-			 0.5f,  0.5f, 0.0f, 1.0f, 0.0f,// top-right
-			 0.5f, -0.5f, 0.0f, 0.0f, 1.0f,// bottom-right
-			-0.5f, -0.5f, 1.0f, 1.0f, 0.0f,// bottom-left
-		};
-
-		//VertexArray
-		OpenGLVertexArray GeometryVAO;
-
-		//VertexBuffer
-		OpenGLVertexBuffer GeometryVB(sizeof(points), points);
-
-		//VertexBufferLayout
-		VertexBufferLayout GeometryLayout;
-		GeometryLayout.Push<float>(2);
-		GeometryLayout.Push<float>(3);
-		GeometryVAO.AddBuffer(GeometryVB, GeometryLayout);
-
-		OpenGLShader GeometryShader("res/Shaders/GeometryShader.shader");
-		OpenGLRenderer renderer;
-#endif
+		quadVB.UnBind();
 
 #if MODEL
 		OpenGLRenderer renderer;
@@ -708,10 +509,10 @@ int main()
 
 			//GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 			
-			/*renderer.Clear();
+			renderer.Clear();
 
 			glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-			glEnable(GL_DEPTH_TEST);*/
+			glEnable(GL_DEPTH_TEST);
 
 			renderer.Clear();
 
@@ -768,17 +569,6 @@ int main()
 			lightingShader.SetUniform1i("material.emission", 2);*/
 
 			lightingShader.SetUniform1f("material.shininess", 32.0f);
-
-			// Offsets
-			const uint32_t DirectionalStride = 64;
-			const uint32_t PointLightStride = 80;
-			const uint32_t SpotLightStride = 112;
-
-			const uint32_t PointLightCount = 5;
-			const uint32_t SpotLightCount = 2;
-
-			const uint32_t PointLightOffset = DirectionalStride; //DirectionalLightStride
-			const uint32_t SpotLightOffset = PointLightCount * PointLightStride + PointLightOffset; // PointLighCount * PointLighStride + DirectionalLightStride
 
 			// Directional Light
 			glBindBuffer(GL_UNIFORM_BUFFER, lightUBO);
@@ -838,9 +628,8 @@ int main()
 			glm::mat4 model = glm::mat4(1.0f);
 			//lightingShader.SetUniformMat4f("u_model", model);
 
-			//va.Bind();
-			//glActiveTexture(GL_TEXTURE0);
-			//glBindTexture(GL_TEXTURE_CUBE_MAP, CubeMapID);
+			va.Bind();
+
 			for (int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); i++)
 			{
 				glm::mat4 model = glm::mat4(1.0f);
@@ -857,7 +646,7 @@ int main()
 			lightingShader.SetUniform1i("material.specular", 2);
 			lightingShader.SetUniform1f("material.shininess", 16.0f);
 
-			glm::mat4 woodTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -7.5f, 0.0f))
+			glm::mat4 woodTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -3.0f, 0.0f))
 				//* glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f))
 				* glm::scale(glm::mat4(1.0f), glm::vec3(4.0f, 1.0f, 4.0f));
 
@@ -873,9 +662,6 @@ int main()
 
 			//LightObject
 			lightSrcShader.Bind();
-
-			//lightSrcShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
-			//lightSrcShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
 			lightSrcShader.SetUniformVec3f("u_lightColor", lightColor);
 
 			lightVA.Bind();
@@ -911,53 +697,26 @@ int main()
 			glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(Camera->GetProjectionMatrix()));
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-#if GEOMETRY
-			//GeometryShader
-			GeometryVAO.Bind();
-			GeometryVB.Bind();
-			GeometryShader.Bind();
-
-			glDrawArrays(GL_POINTS, 0, 4);
-#endif
-
 			////FrameBuffer Stuff
-			//glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-			//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO);
-			//glBlitFramebuffer(0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO);
+			glBlitFramebuffer(0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-			//glBindFramebuffer(GL_FRAMEBUFFER, 0);
-			////renderer.Clear();
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			//renderer.Clear();
 
-			//glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-			//glClear(GL_COLOR_BUFFER_BIT);
-			//glDisable(GL_DEPTH_TEST);
+			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT);
+			glDisable(GL_DEPTH_TEST);
 
-			//QuadScreenShader.Bind();
-			//quadVA.Bind();
-			//GLCall(glActiveTexture(GL_TEXTURE0));
-			//glBindTexture(GL_TEXTURE_2D, intermediateColorAttachment);
-			//QuadScreenShader.SetUniform1i("screenTexture", 0);
-			//renderer.Draw(quadVA, quadIB, QuadScreenShader);
-			//QuadScreenShader.UnBind();
-			//quadVA.UnBind();
-
-			//CubeMap
-			/*glDepthFunc(GL_LEQUAL);
-			CubeMapShader.Bind();
-
-			glm::mat4 view = glm::mat4(glm::mat3(Camera->GetViewMatrix()));
-
-			CubeMapShader.SetUniformMat4f("u_view", view);
-			CubeMapShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
-
-			CubeMapVA.Bind();
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, CubeMapID);
-			renderer.Draw(CubeMapVA, CubeMapIB, CubeMapShader);
-
-			CubeMapShader.UnBind();
-			CubeMapVA.UnBind();
-			glDepthFunc(GL_LESS);*/
+			QuadScreenShader.Bind();
+			quadVA.Bind();
+			GLCall(glActiveTexture(GL_TEXTURE0));
+			glBindTexture(GL_TEXTURE_2D, intermediateColorAttachment);
+			QuadScreenShader.SetUniform1i("screenTexture", 0);
+			renderer.Draw(quadVA, quadIB, QuadScreenShader);
+			QuadScreenShader.UnBind();
+			quadVA.UnBind();
 
 			ImGui::Begin("FPS");
 
@@ -976,8 +735,8 @@ int main()
 			glfwSwapBuffers(window);
 		}
 
-		//glDeleteRenderbuffers(1, &rbo);
-		//glDeleteFramebuffers(1, &fbo);
+		glDeleteRenderbuffers(1, &rbo);
+		glDeleteFramebuffers(1, &fbo);
 	}
 
 	ImGui_ImplOpenGL3_Shutdown();

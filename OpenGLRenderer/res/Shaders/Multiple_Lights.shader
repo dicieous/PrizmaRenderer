@@ -105,7 +105,7 @@ uniform Material material;
 layout(std140, binding = 1) uniform Light
 {
 	DirLight dirLight; //0
-	PointLight pointLightList[5]; //304
+	PointLight pointLightList[4]; //304
 	SpotLight spotLightList[2]; //496
 }; // 640 bytes
 
@@ -160,7 +160,8 @@ vec3 CalculatePointLight(PointLight light, vec3 normal, vec3 viewDir, vec4 diffu
 	vec3 lightDir = normalize(light.position - fs_in.o_FragPos);
 	
 	float distance = length(light.position - fs_in.o_FragPos);
-	float attenuation = 1.0f/ (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+	//float attenuation = 1.0f/ (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+	float attenuation = 1.0f/ (distance * distance);
 
 	vec3 ambient = light.ambient * diffuseTexColor.rgb;
 	vec3 diffuse = light.diffuse * DiffuseLight(normal, lightDir, diffuseTexColor);
@@ -241,7 +242,7 @@ void main()
 	vec3 result = vec3(0.0f);
 	result += CalculateDirLight(dirLight, normal, viewDir, diffuseTexColor, specularTexColor);
 
-	for(int i = 0; i < 5; i++)
+	for(int i = 0; i < 4; i++)
 	{
 		result += CalculatePointLight(pointLightList[i], normal, viewDir, diffuseTexColor, specularTexColor);
 	}
@@ -267,6 +268,7 @@ void main()
 	#if FOG
 	FragColor = vec4(foggedColor, diffuseTexColor.a);
 	#else
+	result.rgb = pow(result.rgb, vec3(1.0/2.0));
 	FragColor = vec4((result), diffuseTexColor.a);
 	#endif
 
