@@ -23,8 +23,8 @@
 #define BOXES 1
 #define MODEL 0
 
-const float SCR_WIDTH = 1280.0f;
-const float SCR_HEIGHT = 720.0f;
+const uint32_t SCR_WIDTH = 1280;
+const uint32_t SCR_HEIGHT = 720;
 
 static glm::vec2 s_ViewportSize{ SCR_WIDTH, SCR_HEIGHT };
 
@@ -149,9 +149,9 @@ int main()
 	//GLCall(glFrontFace(GL_CW));
 
 	GLCall(glEnable(GL_BLEND));
-	GLCall(glEnable(GL_MULTISAMPLE));
+	//GLCall(glEnable(GL_MULTISAMPLE));
 	GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-	GLCall(glEnable(GL_PROGRAM_POINT_SIZE));
+	//GLCall(glEnable(GL_PROGRAM_POINT_SIZE));
 
 	{
 
@@ -248,43 +248,24 @@ int main()
 		lightVA.AddBuffer(vb, lightSourceLayout);
 
 		//Create Fragment Shader
-		OpenGLShader lightingShader("res/Shaders/Multiple_Lights.shader");
-		lightingShader.Bind();
+		OpenGLShader shadowMapShader("res/Shaders/ShadowMap.shader");
+		shadowMapShader.Bind();
 
-		OpenGLShader lightSrcShader("res/Shaders/LightCube.shader");
-		lightSrcShader.Bind();
+		OpenGLShader depthShader("res/Shaders/ShadowMappingDepth.shader");
+		depthShader.Bind();
+
+		OpenGLShader depthDebuggingQuadShader("res/Shaders/DepthDebugQuad.shader");
+		depthDebuggingQuadShader.Bind();  
 
 		//Bind Textures
 		Texture2D diffuseMap("res/Textures/container2.png");
 		diffuseMap.Bind();
 
 		Texture2D specularMap("res/Textures/container2_specular.png");
-		specularMap.Bind(1);
+		specularMap.Bind(3);
 
 		//Texture2D emissionMap("res/Textures/matrix.jpg");
 		//emissionMap.Bind(2);
-
-		//Light's UBOs
-
-		// Offsets
-		const uint32_t DirectionalStride = 64;
-		const uint32_t PointLightStride = 80;
-		const uint32_t SpotLightStride = 112;
-
-		const uint32_t PointLightCount = 4;
-		const uint32_t SpotLightCount = 2;
-
-		const uint32_t PointLightOffset = DirectionalStride; //DirectionalLightStride
-		const uint32_t SpotLightOffset = PointLightCount * PointLightStride + PointLightOffset; // PointLighCount * PointLighStride + DirectionalLightStride
-
-		uint32_t lightUBO;
-		glGenBuffers(1, &lightUBO);
-		glBindBuffer(GL_UNIFORM_BUFFER, lightUBO);
-		glBufferData(GL_UNIFORM_BUFFER, 640, nullptr, GL_STATIC_DRAW);
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-		glBindBufferRange(GL_UNIFORM_BUFFER, 1, lightUBO, 0, 640);
-
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -323,8 +304,36 @@ int main()
 		//Create Texture
 		Texture2D woodTexture("res/Textures/wood.png");
 		woodTexture.Bind(2);
-
 		woodQuadVB.UnBind();
+
+		//Quad
+		float quadVertices[] = {
+			// positions        // texture Coords
+			-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+			-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+			 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+			 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+		};
+
+		uint32_t quadIndices[] = {
+			0, 1, 2,
+			0, 2 ,3,
+		};
+
+		OpenGLVertexArray quadVAO;
+		OpenGLVertexBuffer quadVBO(sizeof(quadVertices), quadVertices);
+		OpenGLIndexBuffer quadIBO(sizeof(quadIndices) / sizeof(quadIndices[0]), quadIndices);
+
+		VertexBufferLayout quadLayout;
+		quadLayout.Push<float>(3);
+		quadLayout.Push<float>(2);
+
+		quadVAO.Bind();
+		quadVAO.AddBuffer(quadVBO, quadLayout);
+
+		quadVAO.UnBind();
+
+
 
 		glm::vec3 cubePositions[] = {
 			glm::vec3(0.0f,  0.0f,  0.0f),
@@ -362,110 +371,40 @@ int main()
 		OpenGLRenderer renderer;
 #endif
 
-		//Uniform Buffer Objects
-		uint32_t ubo;
-		glGenBuffers(1, &ubo);
-		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-		glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), nullptr, GL_STATIC_DRAW);
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+		//DepthMap FrameBuffer
+		uint32_t depthMapFBO;
+		glGenFramebuffers(1, &depthMapFBO);
+		 
+		const uint32_t SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 
-		glBindBufferRange(GL_UNIFORM_BUFFER, 0, ubo, 0, 2 * sizeof(glm::mat4));
+		uint32_t depthMap;
+		glGenTextures(1, &depthMap);
+		glBindTexture(GL_TEXTURE_2D, depthMap);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		float borderColor[] = { 1.0f, 1.0f, 1.0f,1.0f };
+		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
-		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(Camera->GetViewMatrix()));
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(Camera->GetProjectionMatrix()));
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-		//FrameBuffer Creation 
-		//Quad Stuff
-		float QuadVertices[] = {
-			//Positions   //TexCoords
-			-1.0f,  1.0f, 0.0f, 1.0f,
-			-1.0f, -1.0f, 0.0f, 0.0f,
-			 1.0f,  1.0f, 1.0f, 1.0f,
-			 1.0f, -1.0f, 1.0f, 0.0f,
-		};
-
-		uint32_t QuadIndices[] = {
-			0, 1, 2,
-			1, 3 ,2,
-		};
-
-		//Create Framebuffers
-		uint32_t fbo;
-		GLCall(glGenFramebuffers(1, &fbo));
-		GLCall(glBindFramebuffer(GL_FRAMEBUFFER, fbo));
-
-		uint32_t multiSampledColorAttachment;
-		GLCall(glGenTextures(1, &multiSampledColorAttachment));
-		GLCall(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, multiSampledColorAttachment));
-
-		GLCall(glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGB, SCR_WIDTH, SCR_HEIGHT, GL_TRUE));
-		GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, multiSampledColorAttachment, 0));
-
-		GLCall(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0));
-
-		//Create RenderBuffer
-		uint32_t rbo;
-		GLCall(glGenRenderbuffers(1, &rbo));
-		GLCall(glBindRenderbuffer(GL_RENDERBUFFER, rbo));
-		GLCall(glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT));
-		GLCall(glBindRenderbuffer(GL_RENDERBUFFER, 0));
-		
-		GLCall(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo)); //Attach to framebuffer
+		glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+		glDrawBuffer(GL_NONE);
+		glReadBuffer(GL_NONE);
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		{
-			std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
-			ASSERT((glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE));
+			std::cerr << "ERROR: Framebuffer is not complete!" << std::endl;
 		}
-		GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		shadowMapShader.Bind();
+		shadowMapShader.SetUniform1i("u_diffuseMap", 0);
+		shadowMapShader.SetUniform1i("u_shadowMap", 1);
+		shadowMapShader.SetUniform1i("u_SpecularMap", 3);
+		shadowMapShader.UnBind();
 
-		//Intermediate FrameBuffer
-		uint32_t intermediateFBO;
-		GLCall(glGenFramebuffers(1, &intermediateFBO));
-		GLCall(glBindFramebuffer(GL_FRAMEBUFFER, intermediateFBO));
-
-		uint32_t intermediateColorAttachment;
-		GLCall(glGenTextures(1, &intermediateColorAttachment));
-		GLCall(glBindTexture(GL_TEXTURE_2D, intermediateColorAttachment));
-
-		GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr));
-
-		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-
-		GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, intermediateColorAttachment, 0));
-
-		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		{
-			std::cout << "ERROR::FRAMEBUFFER:: IntermediateFramebuffer is not complete!" << std::endl;
-			ASSERT((glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE));
-		}
-		GLCall(glBindTexture(GL_TEXTURE_2D, 0));
-
-		OpenGLVertexArray quadVA;
-
-		//Assign the Vertex Buffer on the GPU
-		OpenGLVertexBuffer quadVB(sizeof(QuadVertices), QuadVertices);
-
-		//Assign the Index Buffer on the GPU
-		OpenGLIndexBuffer quadIB(sizeof(QuadIndices) / sizeof(QuadIndices[0]), QuadIndices);
-
-		//Add Vertex Layouts
-		VertexBufferLayout quadLayout;
-		quadLayout.Push<float>(2); //Position Attribute
-		quadLayout.Push<float>(2); //Texture Attribute
-		quadVA.AddBuffer(quadVB, quadLayout);
-
-		//Create Fragment Shader
-		OpenGLShader QuadScreenShader("res/Shaders/FrameBufferScreen.shader");
-		QuadScreenShader.Bind();
-		QuadScreenShader.SetUniform1i("screenTexture", 0);
-
-		quadVB.UnBind();
+		depthDebuggingQuadShader.Bind();
+		depthDebuggingQuadShader.SetUniform1i("u_depthMap", 0);
 
 #if MODEL
 		OpenGLRenderer renderer;
@@ -496,6 +435,9 @@ int main()
 
 		SetupImGuiStyleWithRoundedBorders();
 
+		glm::mat4 lightProjection, lightView;
+		glm::vec3 lightPos(-2.0f, 4.0f, -1.0f);
+
 
 
 		while (!glfwWindowShouldClose(window))
@@ -506,13 +448,6 @@ int main()
 			ImGui::NewFrame();
 
 			ProcessInput(window);
-
-			//GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-			
-			renderer.Clear();
-
-			glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-			glEnable(GL_DEPTH_TEST);
 
 			renderer.Clear();
 
@@ -548,175 +483,84 @@ int main()
 #endif
 
 #if BOXES
+			lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 7.5f);
+			lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
-			const float position = 2.0f;
-			float posY = sin(glfwGetTime()) * position;
-			float posZ = cos(glfwGetTime()) * position;
-			glm::vec4 lightPos(1.2f, 1.0f, 2.0f, 1.0f);
-			glm::vec4 lightPosDirec(-0.2f, -1.0f, -0.3f, 0.0f);
-			//glm::vec3 lightPos(posY, 1.0f, posZ);
+			depthShader.Bind();
+			depthShader.SetUniformMat4f("u_lightSpaceMatrix", lightSpaceMatrix);
 
-			//RecieverObject
-			lightingShader.Bind();
-			diffuseMap.Bind();
-			lightingShader.SetUniform1i("material.diffuse", 0);
-
-
-			specularMap.Bind(1);
-			lightingShader.SetUniform1i("material.specular", 1);
-
-			/*emissionMap.Bind(2);
-			lightingShader.SetUniform1i("material.emission", 2);*/
-
-			lightingShader.SetUniform1f("material.shininess", 32.0f);
-
-			// Directional Light
-			glBindBuffer(GL_UNIFORM_BUFFER, lightUBO);
-			glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::vec3), glm::value_ptr(glm::vec3(-0.2f, -1.0f, -0.3f))); // Direction
-			glBufferSubData(GL_UNIFORM_BUFFER, 16, sizeof(glm::vec3), glm::value_ptr(glm::vec3(0.05f))); // Ambient
-			glBufferSubData(GL_UNIFORM_BUFFER, 32, sizeof(glm::vec3), glm::value_ptr(glm::vec3(0.5f))); // Diffuse
-			glBufferSubData(GL_UNIFORM_BUFFER, 48, sizeof(glm::vec3), glm::value_ptr(glm::vec3(0.5f))); // Specular
-
-			// Point Lights
-			float constant = 1.0f;
-			float linear = 0.09f;
-			float quadratic = 0.032f;
-
-			for (uint32_t i = 0; i < PointLightCount; i++)
-			{
-				uint32_t baseOffset = PointLightOffset + i * PointLightStride;
-
-				glBufferSubData(GL_UNIFORM_BUFFER, baseOffset + 0, sizeof(glm::vec3), glm::value_ptr(pointLightPositions[i])); // Position
-				glBufferSubData(GL_UNIFORM_BUFFER, baseOffset + 16, sizeof(glm::vec3), glm::value_ptr(glm::vec3(0.05f))); // Ambient
-				glBufferSubData(GL_UNIFORM_BUFFER, baseOffset + 32, sizeof(glm::vec3), glm::value_ptr(glm::vec3(0.8f))); // Diffuse
-				glBufferSubData(GL_UNIFORM_BUFFER, baseOffset + 48, sizeof(glm::vec3), glm::value_ptr(glm::vec3(1.0f))); // Specular
-
-				glBufferSubData(GL_UNIFORM_BUFFER, baseOffset + 64, sizeof(float), &constant);
-				glBufferSubData(GL_UNIFORM_BUFFER, baseOffset + 68, sizeof(float), &linear);
-				glBufferSubData(GL_UNIFORM_BUFFER, baseOffset + 72, sizeof(float), &quadratic);
-			}
-
-			// Spot Lights
-			float cutOff = glm::cos(glm::radians(8.5f));
-			float outerCutOff = glm::cos(glm::radians(10.0f));
-
-			for (int i = 0; i < SpotLightCount; i++)
-			{
-				size_t offset = SpotLightOffset + i * SpotLightStride;
-
-				glBufferSubData(GL_UNIFORM_BUFFER, offset, sizeof(glm::vec3), glm::value_ptr(spotLightPositions[i])); // position
-				glBufferSubData(GL_UNIFORM_BUFFER, offset + 16, sizeof(glm::vec3), glm::value_ptr(glm::normalize(-spotLightPositions[i]))); // direction
-				glBufferSubData(GL_UNIFORM_BUFFER, offset + 32, sizeof(glm::vec3), glm::value_ptr(glm::vec3(0.0f))); // ambient
-				glBufferSubData(GL_UNIFORM_BUFFER, offset + 48, sizeof(glm::vec3), glm::value_ptr(glm::vec3(2.0f))); // diffuse
-				glBufferSubData(GL_UNIFORM_BUFFER, offset + 64, sizeof(glm::vec3), glm::value_ptr(glm::vec3(1.8f))); // specular
-
-				glBufferSubData(GL_UNIFORM_BUFFER, offset + 80, sizeof(float), &constant);
-				glBufferSubData(GL_UNIFORM_BUFFER, offset + 84, sizeof(float), &linear);
-				glBufferSubData(GL_UNIFORM_BUFFER, offset + 88, sizeof(float), &quadratic);
-
-				glBufferSubData(GL_UNIFORM_BUFFER, offset + 96, sizeof(float), &cutOff);
-				glBufferSubData(GL_UNIFORM_BUFFER, offset + 100, sizeof(float), &outerCutOff);
-			}
-
-			glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-			lightingShader.Bind();
-			lightingShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
-
-			//lightingShader.SetUniform1i("u_Skybox", 0);
-
-			glm::mat4 model = glm::mat4(1.0f);
-			//lightingShader.SetUniformMat4f("u_model", model);
-
-			va.Bind();
-
-			for (int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); i++)
-			{
-				glm::mat4 model = glm::mat4(1.0f);
-				model = glm::translate(model, cubePositions[i]);
-				float angle = 10.0f * (i + 1);
-				model = glm::rotate(model, glm::radians(angle) /** (float)glfwGetTime()*/, glm::vec3(1.0f, 0.3f, 0.5f))
-					* glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
-				lightingShader.SetUniformMat4f("u_model", model);
-				renderer.Draw(va, ib, lightingShader);
-			}
-
+			//render from light's POV
+			glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+			glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+			glClear(GL_DEPTH_BUFFER_BIT);
 			woodTexture.Bind(2);
-			lightingShader.SetUniform1i("material.diffuse", 2);
-			lightingShader.SetUniform1i("material.specular", 2);
-			lightingShader.SetUniform1f("material.shininess", 16.0f);
+			depthShader.SetUniformMat4f("u_model", glm::mat4(1.0f));
+			renderer.Draw(woodQuadVA, woodQuadIB, depthShader);
 
-			glm::mat4 woodTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -3.0f, 0.0f))
-				//* glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(4.0f, 1.0f, 4.0f));
+			glm::mat4 cubeTransform1 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.5f, 0.0f))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
 
-			lightingShader.SetUniformMat4f("u_model", woodTransform);
-			renderer.Draw(woodQuadVA, woodQuadIB, lightingShader);
+			depthShader.SetUniformMat4f("u_model", cubeTransform1);
+			renderer.Draw(va, ib, depthShader);
 
-			woodTexture.UnBind();
-			lightingShader.UnBind();
-			va.UnBind();
-			diffuseMap.UnBind();
-			specularMap.UnBind();
-			//////////////////
+			glm::mat4 cubeTransform2 = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 1.0f))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
 
-			//LightObject
-			lightSrcShader.Bind();
-			lightSrcShader.SetUniformVec3f("u_lightColor", lightColor);
+			depthShader.SetUniformMat4f("u_model", cubeTransform2);
+			renderer.Draw(va, ib, depthShader);
 
-			lightVA.Bind();
+			glm::mat4 cubeTransform3 = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, 0.0f, 2.0f))
+				* glm::rotate(glm::mat4(1.0), glm::radians(60.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(0.25f));
 
-			for (int i = 0; i < (sizeof(pointLightPositions) + sizeof(spotLightPositions)) / sizeof(glm::vec3); i++)
-			{
-				model = glm::mat4(1.0f);
+			depthShader.SetUniformMat4f("u_model", cubeTransform3);
+			renderer.Draw(va, ib, depthShader);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-				glm::vec3 position(0.0f);
-				if (i < PointLightCount)
-				{
-					position = pointLightPositions[i];
-				}
-				else
-				{
-					position = spotLightPositions[i - PointLightCount];
-				}
+			//reset Viewport
+			glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			
+			//Render Normally From Camera View;
+			shadowMapShader.Bind();
+			shadowMapShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
+			shadowMapShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
+			shadowMapShader.SetUniformMat4f("u_lightSpaceMatrix", lightSpaceMatrix);
 
-				model = glm::translate(model, position)
-					* glm::scale(model, glm::vec3(0.2f));
+			shadowMapShader.SetUniformVec3f("u_lightPos", lightPos);
+			shadowMapShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
 
-				lightSrcShader.SetUniformMat4f("u_model", model);
-				renderer.Draw(lightVA, ib, lightSrcShader);
-		}
+			diffuseMap.Bind();
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, depthMap);
+			woodTexture.Bind(2);
+			specularMap.Bind(3);
+			shadowMapShader.SetUniform1i("u_diffuseMap", 2);
+			shadowMapShader.SetUniformMat4f("u_model", glm::mat4(1.0f));
+			renderer.Draw(woodQuadVA, woodQuadIB, shadowMapShader);
+	
+			shadowMapShader.SetUniform1i("u_diffuseMap", 0);
+			shadowMapShader.SetUniformMat4f("u_model", cubeTransform1);
+			renderer.Draw(va, ib, shadowMapShader);
 
-			lightVA.UnBind();
-			lightSrcShader.UnBind();
+			shadowMapShader.SetUniformMat4f("u_model", cubeTransform2);
+			renderer.Draw(va, ib, shadowMapShader);
+
+			shadowMapShader.SetUniformMat4f("u_model", cubeTransform3);
+			renderer.Draw(va, ib, shadowMapShader);
+
+
+			//For Depth Debugging Purpose
+			depthDebuggingQuadShader.Bind();
+			depthDebuggingQuadShader.SetUniform1f("u_near_plane", 1.0f);
+			depthDebuggingQuadShader.SetUniform1f("u_far_plane", 7.5f);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, depthMap);
+			//renderer.Draw(quadVAO, quadIBO, depthDebuggingQuadShader);
+
 			/////////////////////
 #endif
-			glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-			glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(Camera->GetViewMatrix()));
-
-			glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(Camera->GetProjectionMatrix()));
-			glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-			////FrameBuffer Stuff
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO);
-			glBlitFramebuffer(0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-			//renderer.Clear();
-
-			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT);
-			glDisable(GL_DEPTH_TEST);
-
-			QuadScreenShader.Bind();
-			quadVA.Bind();
-			GLCall(glActiveTexture(GL_TEXTURE0));
-			glBindTexture(GL_TEXTURE_2D, intermediateColorAttachment);
-			QuadScreenShader.SetUniform1i("screenTexture", 0);
-			renderer.Draw(quadVA, quadIB, QuadScreenShader);
-			QuadScreenShader.UnBind();
-			quadVA.UnBind();
 
 			ImGui::Begin("FPS");
 
@@ -734,9 +578,6 @@ int main()
 
 			glfwSwapBuffers(window);
 		}
-
-		glDeleteRenderbuffers(1, &rbo);
-		glDeleteFramebuffers(1, &fbo);
 	}
 
 	ImGui_ImplOpenGL3_Shutdown();

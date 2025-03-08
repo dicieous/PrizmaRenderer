@@ -512,6 +512,9 @@
     <None Include="res\Shaders\Model_Normals.shader" />
     <None Include="res\Shaders\Instance.shader" />
     <None Include="res\Shaders\InstancedAsteroid.shader" />
+    <None Include="res\Shaders\ShadowMappingDepth.shader" />
+    <None Include="res\Shaders\DepthDebugQuad.shader" />
+    <None Include="res\Shaders\ShadowMap.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vendor\GLFW\include\GLFW\glfw3.h">

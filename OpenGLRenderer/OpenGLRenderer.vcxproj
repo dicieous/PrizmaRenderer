@@ -115,6 +115,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="res\Shaders\Basic.shader" />
+    <None Include="res\Shaders\DepthDebugQuad.shader" />
     <None Include="res\Shaders\FrameBufferScreen.shader" />
     <None Include="res\Shaders\GeometryShader.shader" />
     <None Include="res\Shaders\Instance.shader" />
@@ -126,6 +127,8 @@
     <None Include="res\Shaders\Model_Loading.shader" />
     <None Include="res\Shaders\Model_Normals.shader" />
     <None Include="res\Shaders\Multiple_Lights.shader" />
+    <None Include="res\Shaders\ShadowMap.shader" />
+    <None Include="res\Shaders\ShadowMappingDepth.shader" />
     <None Include="res\Shaders\SingleColorShader.shader" />
     <None Include="res\Shaders\Skybox.shader" />
     <None Include="Vendor\GLFW\Debug\glfw3.pdb" />
