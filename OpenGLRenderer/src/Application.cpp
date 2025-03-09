@@ -248,14 +248,16 @@ int main()
 		lightVA.AddBuffer(vb, lightSourceLayout);
 
 		//Create Fragment Shader
-		OpenGLShader shadowMapShader("res/Shaders/ShadowMap.shader");
-		shadowMapShader.Bind();
+		OpenGLShader pointShadowMapShader("res/Shaders/PointShadowMap.shader");
+		pointShadowMapShader.Bind();
 
-		OpenGLShader depthShader("res/Shaders/ShadowMappingDepth.shader");
-		depthShader.Bind();
+		OpenGLShader pointShadowDepthShader("res/Shaders/PointShadowDepthShader.shader");
+		pointShadowDepthShader.Bind();
 
 		OpenGLShader depthDebuggingQuadShader("res/Shaders/DepthDebugQuad.shader");
-		depthDebuggingQuadShader.Bind();  
+		depthDebuggingQuadShader.Bind();
+
+		OpenGLShader lightSrcShader("res/Shaders/LightCube.shader");
 
 		//Bind Textures
 		Texture2D diffuseMap("res/Textures/container2.png");
@@ -377,19 +379,22 @@ int main()
 		 
 		const uint32_t SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 
-		uint32_t depthMap;
-		glGenTextures(1, &depthMap);
-		glBindTexture(GL_TEXTURE_2D, depthMap);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-		float borderColor[] = { 1.0f, 1.0f, 1.0f,1.0f };
-		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+		//cubemap for OmniDirectionShadow
+		uint32_t depthCubeMap;
+		glGenTextures(1, &depthCubeMap);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubeMap);
+		for (int i = 0; i < 6; ++i)
+		{
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+		}
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubeMap, 0);
 		glDrawBuffer(GL_NONE);
 		glReadBuffer(GL_NONE);
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -397,11 +402,11 @@ int main()
 			std::cerr << "ERROR: Framebuffer is not complete!" << std::endl;
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		shadowMapShader.Bind();
-		shadowMapShader.SetUniform1i("u_diffuseMap", 0);
-		shadowMapShader.SetUniform1i("u_shadowMap", 1);
-		shadowMapShader.SetUniform1i("u_SpecularMap", 3);
-		shadowMapShader.UnBind();
+		pointShadowMapShader.Bind();
+		pointShadowMapShader.SetUniform1i("u_diffuseMap", 0);
+		pointShadowMapShader.SetUniform1i("u_shadowDepthMap", 1);
+		pointShadowMapShader.SetUniform1i("u_SpecularMap", 3);
+		pointShadowMapShader.UnBind();
 
 		depthDebuggingQuadShader.Bind();
 		depthDebuggingQuadShader.SetUniform1i("u_depthMap", 0);
@@ -435,8 +440,12 @@ int main()
 
 		SetupImGuiStyleWithRoundedBorders();
 
-		glm::mat4 lightProjection, lightView;
-		glm::vec3 lightPos(-2.0f, 4.0f, -1.0f);
+		float near_view = 1.0f;
+		float far_view = 25.0f;
+		float aspect = (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT;
+
+		glm::mat4 shadowProjection;
+		glm::vec3 lightPos(0.0f, 0.0f, 0.0f);
 
 
 
@@ -483,72 +492,129 @@ int main()
 #endif
 
 #if BOXES
-			lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 7.5f);
-			lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+			const float position = 2.0f;
+			float posY = sin(glfwGetTime()) * position;
+			float posZ = cos(glfwGetTime()) * position;
+			lightPos.z = posZ;
+			lightPos.y = posY;
 
-			depthShader.Bind();
-			depthShader.SetUniformMat4f("u_lightSpaceMatrix", lightSpaceMatrix);
+			shadowProjection = glm::perspective(glm::radians(90.0f), aspect, near_view, far_view);
+
+			std::vector<glm::mat4> shadowTransforms;
+			shadowTransforms.push_back(shadowProjection * glm::lookAt(lightPos, lightPos + glm::vec3( 1.0f, 0.0f, 0.0f), glm::vec3(0.0f,-1.0f, 0.0f)));
+			shadowTransforms.push_back(shadowProjection * glm::lookAt(lightPos, lightPos + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f,-1.0f, 0.0f)));
+			shadowTransforms.push_back(shadowProjection * glm::lookAt(lightPos, lightPos + glm::vec3( 0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
+			shadowTransforms.push_back(shadowProjection * glm::lookAt(lightPos, lightPos + glm::vec3( 0.0f,-1.0f, 0.0f), glm::vec3(0.0f, 0.0f,-1.0f)));
+			shadowTransforms.push_back(shadowProjection * glm::lookAt(lightPos, lightPos + glm::vec3( 0.0f, 0.0f, 1.0f), glm::vec3(0.0f,-1.0f, 0.0f)));
+			shadowTransforms.push_back(shadowProjection * glm::lookAt(lightPos, lightPos + glm::vec3( 0.0f, 0.0f,-1.0f), glm::vec3(0.0f,-1.0f, 0.0f)));
+
+			pointShadowDepthShader.Bind();
+			for (int i = 0; i < 6; i++)
+			{
+				pointShadowDepthShader.SetUniformMat4f("u_shadowMatrices[" + std::to_string(i) + "]", shadowTransforms[i]);
+			}
+			pointShadowDepthShader.SetUniformVec3f("u_lightPos", lightPos);
+			pointShadowDepthShader.SetUniform1f("u_far_plane", far_view);
 
 			//render from light's POV
 			glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 			glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
 			glClear(GL_DEPTH_BUFFER_BIT);
 			woodTexture.Bind(2);
-			depthShader.SetUniformMat4f("u_model", glm::mat4(1.0f));
-			renderer.Draw(woodQuadVA, woodQuadIB, depthShader);
+			glm::mat4 woodCubeTransform = glm::scale(glm::mat4(1.0f), glm::vec3(10.0f));
+			pointShadowDepthShader.SetUniformMat4f("u_model", woodCubeTransform);
+			//glDisable(GL_CULL_FACE);
+			renderer.Draw(va, ib, pointShadowDepthShader);
+			//glEnable(GL_CULL_FACE);
 
-			glm::mat4 cubeTransform1 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.5f, 0.0f))
+			glm::mat4 cubeTransform1 = glm::translate(glm::mat4(1.0f), glm::vec3(4.0f, -3.5f, 0.0f))
 				* glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
 
-			depthShader.SetUniformMat4f("u_model", cubeTransform1);
-			renderer.Draw(va, ib, depthShader);
+			pointShadowDepthShader.SetUniformMat4f("u_model", cubeTransform1);
+			renderer.Draw(va, ib, pointShadowDepthShader);
 
-			glm::mat4 cubeTransform2 = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 1.0f))
+			glm::mat4 cubeTransform2 = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 3.0f, 1.0f))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(0.75f));
+
+			pointShadowDepthShader.SetUniformMat4f("u_model", cubeTransform2);
+			renderer.Draw(va, ib, pointShadowDepthShader);
+
+			glm::mat4 cubeTransform3 = glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, -1.0f, 0.0f))
 				* glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
 
-			depthShader.SetUniformMat4f("u_model", cubeTransform2);
-			renderer.Draw(va, ib, depthShader);
+			pointShadowDepthShader.SetUniformMat4f("u_model", cubeTransform3);
+			renderer.Draw(va, ib, pointShadowDepthShader);
 
-			glm::mat4 cubeTransform3 = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, 0.0f, 2.0f))
+			glm::mat4 cubeTransform4 = glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 1.0f, 1.5f))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
+
+			pointShadowDepthShader.SetUniformMat4f("u_model", cubeTransform4);
+			renderer.Draw(va, ib, pointShadowDepthShader);
+
+			glm::mat4 cubeTransform5 = glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 2.0f, -3.0f))
 				* glm::rotate(glm::mat4(1.0), glm::radians(60.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(0.25f));
+				* glm::scale(glm::mat4(1.0f), glm::vec3(0.75f));
 
-			depthShader.SetUniformMat4f("u_model", cubeTransform3);
-			renderer.Draw(va, ib, depthShader);
+			pointShadowDepthShader.SetUniformMat4f("u_model", cubeTransform5);
+			renderer.Draw(va, ib, pointShadowDepthShader);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 			//reset Viewport
-			glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+			glViewport(0, 0, s_ViewportSize.x, s_ViewportSize.y);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			
 			//Render Normally From Camera View;
-			shadowMapShader.Bind();
-			shadowMapShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
-			shadowMapShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
-			shadowMapShader.SetUniformMat4f("u_lightSpaceMatrix", lightSpaceMatrix);
+			pointShadowMapShader.Bind();
+			pointShadowMapShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
+			pointShadowMapShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
+			pointShadowMapShader.SetUniform1f("u_far_plane", far_view);
 
-			shadowMapShader.SetUniformVec3f("u_lightPos", lightPos);
-			shadowMapShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
+			pointShadowMapShader.SetUniformVec3f("u_lightPos", lightPos);
+			pointShadowMapShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
 
 			diffuseMap.Bind();
 			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, depthMap);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubeMap);
 			woodTexture.Bind(2);
 			specularMap.Bind(3);
-			shadowMapShader.SetUniform1i("u_diffuseMap", 2);
-			shadowMapShader.SetUniformMat4f("u_model", glm::mat4(1.0f));
-			renderer.Draw(woodQuadVA, woodQuadIB, shadowMapShader);
+			pointShadowMapShader.SetUniform1i("u_diffuseMap", 2);
+			pointShadowMapShader.SetUniformMat4f("u_model", woodCubeTransform);
+
+			//glDisable(GL_CULL_FACE);
+			pointShadowMapShader.SetUniform1i("u_reverse_normals", 1);
+			renderer.Draw(va, ib, pointShadowMapShader);
+			pointShadowMapShader.SetUniform1i("u_reverse_normals", 0);
+			//glEnable(GL_CULL_FACE);
 	
-			shadowMapShader.SetUniform1i("u_diffuseMap", 0);
-			shadowMapShader.SetUniformMat4f("u_model", cubeTransform1);
-			renderer.Draw(va, ib, shadowMapShader);
+			pointShadowMapShader.SetUniform1i("u_diffuseMap", 0);
+			pointShadowMapShader.SetUniformMat4f("u_model", cubeTransform1);
+			renderer.Draw(va, ib, pointShadowMapShader);
 
-			shadowMapShader.SetUniformMat4f("u_model", cubeTransform2);
-			renderer.Draw(va, ib, shadowMapShader);
+			pointShadowMapShader.SetUniformMat4f("u_model", cubeTransform2);
+			renderer.Draw(va, ib, pointShadowMapShader);
 
-			shadowMapShader.SetUniformMat4f("u_model", cubeTransform3);
-			renderer.Draw(va, ib, shadowMapShader);
+			pointShadowMapShader.SetUniformMat4f("u_model", cubeTransform3);
+			renderer.Draw(va, ib, pointShadowMapShader);
+
+			pointShadowMapShader.SetUniformMat4f("u_model", cubeTransform4);
+			renderer.Draw(va, ib, pointShadowMapShader);
+
+			pointShadowMapShader.SetUniformMat4f("u_model", cubeTransform5);
+			renderer.Draw(va, ib, pointShadowMapShader);
+
+
+			//render lightCube
+			glm::mat4 lightCube = glm::translate(glm::mat4(1.0f), glm::vec3(lightPos))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(0.25f));
+
+			lightSrcShader.Bind();
+			lightSrcShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
+			lightSrcShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
+			lightSrcShader.SetUniformMat4f("u_model", lightCube);
+			lightSrcShader.SetUniformVec3f("u_lightColor", glm::vec3(1.0f));
+			renderer.Draw(va, ib, lightSrcShader);
+
+			lightSrcShader.UnBind();
 
 
 			//For Depth Debugging Purpose
@@ -556,7 +622,7 @@ int main()
 			depthDebuggingQuadShader.SetUniform1f("u_near_plane", 1.0f);
 			depthDebuggingQuadShader.SetUniform1f("u_far_plane", 7.5f);
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, depthMap);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubeMap);
 			//renderer.Draw(quadVAO, quadIBO, depthDebuggingQuadShader);
 
 			/////////////////////

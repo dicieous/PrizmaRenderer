@@ -3,13 +3,15 @@
 
 layout(location = 0) in vec3 v_position;
 
+uniform mat4 u_projection;
+uniform mat4 u_view;
 uniform mat4 u_model;
 
-layout(std140, binding = 0) uniform Camera
-{
-	mat4 u_view;
-	mat4 u_projection;
-};
+// layout(std140, binding = 0) uniform Camera
+// {
+// 	mat4 u_view;
+// 	mat4 u_projection;
+// };
 
 void main()
 {
