@@ -127,6 +127,7 @@
     <None Include="res\Shaders\Model_Loading.shader" />
     <None Include="res\Shaders\Model_Normals.shader" />
     <None Include="res\Shaders\Multiple_Lights.shader" />
+    <None Include="res\Shaders\NormalMapping.shader" />
     <None Include="res\Shaders\PointShadowDepthShader.shader" />
     <None Include="res\Shaders\PointShadowMap.shader" />
     <None Include="res\Shaders\ShadowMap.shader" />

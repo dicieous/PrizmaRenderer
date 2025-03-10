@@ -276,7 +276,7 @@ int main()
 		vb.UnBind();
 
 		float woodQuadVertices[] = {
-			// position          //Normals			  //TexCoords
+			// position				//Normals		 //TexCoords
 			 25.0f, -0.5f,  25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 0.0f,// Top-right
 			-25.0f, -0.5f,  25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,// Top-left
 			-25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 25.0f,// Bottom-left
@@ -372,44 +372,104 @@ int main()
 
 		OpenGLRenderer renderer;
 #endif
+		//Normal Map stuff
 
-		//DepthMap FrameBuffer
-		uint32_t depthMapFBO;
-		glGenFramebuffers(1, &depthMapFBO);
-		 
-		const uint32_t SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+		// positions
+		glm::vec3 pos1(-1.0f, 1.0f, 0.0f);
+		glm::vec3 pos2(-1.0f, -1.0f, 0.0f);
+		glm::vec3 pos3(1.0f, -1.0f, 0.0f);
+		glm::vec3 pos4(1.0f, 1.0f, 0.0f);
 
-		//cubemap for OmniDirectionShadow
-		uint32_t depthCubeMap;
-		glGenTextures(1, &depthCubeMap);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubeMap);
-		for (int i = 0; i < 6; ++i)
-		{
-			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-		}
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		// texture coordinates
+		glm::vec2 uv1(0.0f, 1.0f);
+		glm::vec2 uv2(0.0f, 0.0f);
+		glm::vec2 uv3(1.0f, 0.0f);
+		glm::vec2 uv4(1.0f, 1.0f);
 
-		glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubeMap, 0);
-		glDrawBuffer(GL_NONE);
-		glReadBuffer(GL_NONE);
-		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		{
-			std::cerr << "ERROR: Framebuffer is not complete!" << std::endl;
-		}
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		pointShadowMapShader.Bind();
-		pointShadowMapShader.SetUniform1i("u_diffuseMap", 0);
-		pointShadowMapShader.SetUniform1i("u_shadowDepthMap", 1);
-		pointShadowMapShader.SetUniform1i("u_SpecularMap", 3);
-		pointShadowMapShader.UnBind();
+		// normal vector
+		glm::vec3 nm(0.0f, 0.0f, 1.0f);
 
-		depthDebuggingQuadShader.Bind();
-		depthDebuggingQuadShader.SetUniform1i("u_depthMap", 0);
+		//First Triangle
+		glm::vec3 edge1 = pos2 - pos1;
+		glm::vec3 edge2 = pos3 - pos1;
+		glm::vec2 deltaUV1 = uv2 - uv1;
+		glm::vec2 deltaUV2 = uv3 - uv1;
+
+		float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+		glm::vec3 tangent1, tangent2;
+		glm::vec3 biTangent1, biTangent2;
+
+		tangent1.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+		tangent1.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+		tangent1.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+		biTangent1.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+		biTangent1.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+		biTangent1.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+
+		//Second Triangle
+		edge1 = pos3 - pos1;
+		edge2 = pos4 - pos1;
+		deltaUV1 = uv3 - uv1;
+		deltaUV2 = uv4 - uv1;
+
+		f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+		tangent2.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+		tangent2.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+		tangent2.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+		biTangent2.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+		biTangent2.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+		biTangent2.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+
+
+		glm::vec3 tan = glm::normalize((tangent1 + tangent2) * 0.5f);
+		glm::vec3 biTan = glm::normalize((biTangent1 + biTangent2) * 0.5f);
+
+		float normalQuadVertices[] = {
+			//Position              //Normals         //TexCoords   //Tangent            //BiTangent
+			pos1.x, pos1.y, pos1.z, nm.x, nm.y, nm.z, uv1.x, uv1.y, tan.x, tan.y, tan.z, biTan.x, biTan.y, biTan.z,
+			pos2.x, pos2.y, pos2.z,	nm.x, nm.y, nm.z, uv2.x, uv2.y, tan.x, tan.y, tan.z, biTan.x, biTan.y, biTan.z,
+			pos3.x, pos3.y, pos3.z,	nm.x, nm.y, nm.z, uv3.x, uv3.y, tan.x, tan.y, tan.z, biTan.x, biTan.y, biTan.z,
+			pos4.x, pos4.y, pos4.z,	nm.x, nm.y, nm.z, uv4.x, uv4.y, tan.x, tan.y, tan.z, biTan.x, biTan.y, biTan.z,
+		};
+
+
+		//Indices
+		uint32_t normalQuadIndices[] = {
+			0, 1, 2,
+			0, 2 ,3,
+		};
+
+		OpenGLVertexArray normalVAO;
+
+		OpenGLVertexBuffer normalVBO(sizeof(normalQuadVertices), normalQuadVertices);
+		OpenGLIndexBuffer normalIBO(sizeof(normalQuadIndices) / sizeof(normalQuadIndices[0]), normalQuadIndices);
+
+		VertexBufferLayout normalMapLayout;
+		normalMapLayout.Push<float>(3); //Position
+		normalMapLayout.Push<float>(3); //Normals
+		normalMapLayout.Push<float>(2); //TexCoords
+		normalMapLayout.Push<float>(3); //Tangents
+		normalMapLayout.Push<float>(3); //BiTangents
+
+		normalVAO.AddBuffer(normalVBO, normalMapLayout);
+
+		OpenGLShader normalMappingShader("res/Shaders/NormalMapping.shader");
+
+		Texture2D brickWallDiffuseMap("res/Textures/brickwall.jpg");
+		brickWallDiffuseMap.Bind();
+
+		Texture2D brickWallNormalMap("res/Textures/brickwall_normal.jpg");
+		brickWallNormalMap.Bind(1);
+
+		normalMappingShader.Bind();
+		normalMappingShader.SetUniform1i("u_diffuseMap", 0);
+		normalMappingShader.SetUniform1i("u_NormalMap", 1);
+
+
 
 #if MODEL
 		OpenGLRenderer renderer;
@@ -440,14 +500,7 @@ int main()
 
 		SetupImGuiStyleWithRoundedBorders();
 
-		float near_view = 1.0f;
-		float far_view = 25.0f;
-		float aspect = (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT;
-
-		glm::mat4 shadowProjection;
-		glm::vec3 lightPos(0.0f, 0.0f, 0.0f);
-
-
+		glm::vec3 lightPos(0.5f, 1.0f, 0.3f);
 
 		while (!glfwWindowShouldClose(window))
 		{
@@ -492,115 +545,22 @@ int main()
 #endif
 
 #if BOXES
-			const float position = 2.0f;
-			float posY = sin(glfwGetTime()) * position;
-			float posZ = cos(glfwGetTime()) * position;
-			lightPos.z = posZ;
-			lightPos.y = posY;
-
-			shadowProjection = glm::perspective(glm::radians(90.0f), aspect, near_view, far_view);
-
-			std::vector<glm::mat4> shadowTransforms;
-			shadowTransforms.push_back(shadowProjection * glm::lookAt(lightPos, lightPos + glm::vec3( 1.0f, 0.0f, 0.0f), glm::vec3(0.0f,-1.0f, 0.0f)));
-			shadowTransforms.push_back(shadowProjection * glm::lookAt(lightPos, lightPos + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f,-1.0f, 0.0f)));
-			shadowTransforms.push_back(shadowProjection * glm::lookAt(lightPos, lightPos + glm::vec3( 0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
-			shadowTransforms.push_back(shadowProjection * glm::lookAt(lightPos, lightPos + glm::vec3( 0.0f,-1.0f, 0.0f), glm::vec3(0.0f, 0.0f,-1.0f)));
-			shadowTransforms.push_back(shadowProjection * glm::lookAt(lightPos, lightPos + glm::vec3( 0.0f, 0.0f, 1.0f), glm::vec3(0.0f,-1.0f, 0.0f)));
-			shadowTransforms.push_back(shadowProjection * glm::lookAt(lightPos, lightPos + glm::vec3( 0.0f, 0.0f,-1.0f), glm::vec3(0.0f,-1.0f, 0.0f)));
-
-			pointShadowDepthShader.Bind();
-			for (int i = 0; i < 6; i++)
-			{
-				pointShadowDepthShader.SetUniformMat4f("u_shadowMatrices[" + std::to_string(i) + "]", shadowTransforms[i]);
-			}
-			pointShadowDepthShader.SetUniformVec3f("u_lightPos", lightPos);
-			pointShadowDepthShader.SetUniform1f("u_far_plane", far_view);
-
-			//render from light's POV
-			glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-			glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-			glClear(GL_DEPTH_BUFFER_BIT);
-			woodTexture.Bind(2);
-			glm::mat4 woodCubeTransform = glm::scale(glm::mat4(1.0f), glm::vec3(10.0f));
-			pointShadowDepthShader.SetUniformMat4f("u_model", woodCubeTransform);
-			//glDisable(GL_CULL_FACE);
-			renderer.Draw(va, ib, pointShadowDepthShader);
-			//glEnable(GL_CULL_FACE);
-
-			glm::mat4 cubeTransform1 = glm::translate(glm::mat4(1.0f), glm::vec3(4.0f, -3.5f, 0.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
-
-			pointShadowDepthShader.SetUniformMat4f("u_model", cubeTransform1);
-			renderer.Draw(va, ib, pointShadowDepthShader);
-
-			glm::mat4 cubeTransform2 = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 3.0f, 1.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(0.75f));
-
-			pointShadowDepthShader.SetUniformMat4f("u_model", cubeTransform2);
-			renderer.Draw(va, ib, pointShadowDepthShader);
-
-			glm::mat4 cubeTransform3 = glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, -1.0f, 0.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
-
-			pointShadowDepthShader.SetUniformMat4f("u_model", cubeTransform3);
-			renderer.Draw(va, ib, pointShadowDepthShader);
-
-			glm::mat4 cubeTransform4 = glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 1.0f, 1.5f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
-
-			pointShadowDepthShader.SetUniformMat4f("u_model", cubeTransform4);
-			renderer.Draw(va, ib, pointShadowDepthShader);
-
-			glm::mat4 cubeTransform5 = glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 2.0f, -3.0f))
-				* glm::rotate(glm::mat4(1.0), glm::radians(60.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(0.75f));
-
-			pointShadowDepthShader.SetUniformMat4f("u_model", cubeTransform5);
-			renderer.Draw(va, ib, pointShadowDepthShader);
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-			//reset Viewport
-			glViewport(0, 0, s_ViewportSize.x, s_ViewportSize.y);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			//Render Normal Mapped Quad
+			normalMappingShader.Bind();
+			normalMappingShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
+			normalMappingShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
 			
-			//Render Normally From Camera View;
-			pointShadowMapShader.Bind();
-			pointShadowMapShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
-			pointShadowMapShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
-			pointShadowMapShader.SetUniform1f("u_far_plane", far_view);
+			normalMappingShader.SetUniformVec3f("u_lightPos", lightPos);
+			normalMappingShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
 
-			pointShadowMapShader.SetUniformVec3f("u_lightPos", lightPos);
-			pointShadowMapShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
+			glm::mat4 brickwallQuadModel = glm::rotate(glm::mat4(1.0f), glm::radians((float)glfwGetTime() * -10.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
+			normalMappingShader.SetUniformMat4f("u_model", brickwallQuadModel);
+			brickWallDiffuseMap.Bind();
+			brickWallNormalMap.Bind(1);
 
-			diffuseMap.Bind();
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubeMap);
-			woodTexture.Bind(2);
-			specularMap.Bind(3);
-			pointShadowMapShader.SetUniform1i("u_diffuseMap", 2);
-			pointShadowMapShader.SetUniformMat4f("u_model", woodCubeTransform);
+			renderer.Draw(normalVAO, normalIBO, normalMappingShader);
 
-			//glDisable(GL_CULL_FACE);
-			pointShadowMapShader.SetUniform1i("u_reverse_normals", 1);
-			renderer.Draw(va, ib, pointShadowMapShader);
-			pointShadowMapShader.SetUniform1i("u_reverse_normals", 0);
-			//glEnable(GL_CULL_FACE);
-	
-			pointShadowMapShader.SetUniform1i("u_diffuseMap", 0);
-			pointShadowMapShader.SetUniformMat4f("u_model", cubeTransform1);
-			renderer.Draw(va, ib, pointShadowMapShader);
-
-			pointShadowMapShader.SetUniformMat4f("u_model", cubeTransform2);
-			renderer.Draw(va, ib, pointShadowMapShader);
-
-			pointShadowMapShader.SetUniformMat4f("u_model", cubeTransform3);
-			renderer.Draw(va, ib, pointShadowMapShader);
-
-			pointShadowMapShader.SetUniformMat4f("u_model", cubeTransform4);
-			renderer.Draw(va, ib, pointShadowMapShader);
-
-			pointShadowMapShader.SetUniformMat4f("u_model", cubeTransform5);
-			renderer.Draw(va, ib, pointShadowMapShader);
+			normalMappingShader.UnBind();
 
 
 			//render lightCube
@@ -615,15 +575,6 @@ int main()
 			renderer.Draw(va, ib, lightSrcShader);
 
 			lightSrcShader.UnBind();
-
-
-			//For Depth Debugging Purpose
-			depthDebuggingQuadShader.Bind();
-			depthDebuggingQuadShader.SetUniform1f("u_near_plane", 1.0f);
-			depthDebuggingQuadShader.SetUniform1f("u_far_plane", 7.5f);
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubeMap);
-			//renderer.Draw(quadVAO, quadIBO, depthDebuggingQuadShader);
 
 			/////////////////////
 #endif

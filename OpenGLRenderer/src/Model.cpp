@@ -17,7 +17,7 @@ void Model::Draw(OpenGLShader& shader)
 void Model::LoadModel(const std::string& filePath)
 {
 	Assimp::Importer import;
-	const aiScene * scene = import.ReadFile(filePath, aiProcess_Triangulate | aiProcess_FlipUVs);
+	const aiScene * scene = import.ReadFile(filePath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{
@@ -56,13 +56,18 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 		glm::vec3 positions = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
 		glm::vec3 normals = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
 
+		glm::vec3 tangents(0.0f);
+		glm::vec3 biTangents(0.0f);
 		glm::vec2 TexCoords(0.0f);
+
 		if (mesh->mTextureCoords[0])
 		{
 			TexCoords = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
+			tangents = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z};
+			biTangents = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z};
 		}
 
-		vertices.push_back(Vertex{ positions,normals,TexCoords });
+		vertices.push_back(Vertex{ positions, normals, TexCoords, tangents, biTangents });
 	}
 
 	//Indices
@@ -84,6 +89,12 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 
 		std::vector<Texture> specularMaps = LoadMaterialTexture(material, aiTextureType_SPECULAR, "texture_specular");
 		textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
+
+		std::vector<Texture> normalMaps = LoadMaterialTexture(material, aiTextureType_HEIGHT, "texture_normal");
+		textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
+
+		std::vector<Texture> heightMaps = LoadMaterialTexture(material, aiTextureType_AMBIENT, "texture_height");
+		textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 	}
 
 	return Mesh(vertices, indices, textures);
