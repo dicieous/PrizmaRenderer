@@ -443,10 +443,10 @@ int main()
 			0, 2 ,3,
 		};
 
-		OpenGLVertexArray normalVAO;
+		OpenGLVertexArray parallaxVAO;
 
 		OpenGLVertexBuffer normalVBO(sizeof(normalQuadVertices), normalQuadVertices);
-		OpenGLIndexBuffer normalIBO(sizeof(normalQuadIndices) / sizeof(normalQuadIndices[0]), normalQuadIndices);
+		OpenGLIndexBuffer parallaxIBO(sizeof(normalQuadIndices) / sizeof(normalQuadIndices[0]), normalQuadIndices);
 
 		VertexBufferLayout normalMapLayout;
 		normalMapLayout.Push<float>(3); //Position
@@ -455,19 +455,23 @@ int main()
 		normalMapLayout.Push<float>(3); //Tangents
 		normalMapLayout.Push<float>(3); //BiTangents
 
-		normalVAO.AddBuffer(normalVBO, normalMapLayout);
+		parallaxVAO.AddBuffer(normalVBO, normalMapLayout);
 
-		OpenGLShader normalMappingShader("res/Shaders/NormalMapping.shader");
+		OpenGLShader parallaxMappingShader("res/Shaders/ParallaxMapping.shader");
 
-		Texture2D brickWallDiffuseMap("res/Textures/brickwall.jpg");
-		brickWallDiffuseMap.Bind();
+		Texture2D brick2DiffuseMap("res/Textures/bricks2.jpg");
+		brick2DiffuseMap.Bind();
 
-		Texture2D brickWallNormalMap("res/Textures/brickwall_normal.jpg");
-		brickWallNormalMap.Bind(1);
+		Texture2D brick2NormalMap("res/Textures/bricks2_normal.jpg");
+		brick2NormalMap.Bind(1);
 
-		normalMappingShader.Bind();
-		normalMappingShader.SetUniform1i("u_diffuseMap", 0);
-		normalMappingShader.SetUniform1i("u_NormalMap", 1);
+		Texture2D brick2DepthMap("res/Textures/bricks2_disp.jpg");
+		brick2DepthMap.Bind(2);
+
+		parallaxMappingShader.Bind();
+		parallaxMappingShader.SetUniform1i("u_diffuseMap", 0);
+		parallaxMappingShader.SetUniform1i("u_NormalMap", 1);
+		parallaxMappingShader.SetUniform1i("u_DepthMap", 2);
 
 
 
@@ -546,21 +550,24 @@ int main()
 
 #if BOXES
 			//Render Normal Mapped Quad
-			normalMappingShader.Bind();
-			normalMappingShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
-			normalMappingShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
-			
-			normalMappingShader.SetUniformVec3f("u_lightPos", lightPos);
-			normalMappingShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
+			parallaxMappingShader.Bind();
+			parallaxMappingShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
+			parallaxMappingShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
 
-			glm::mat4 brickwallQuadModel = glm::rotate(glm::mat4(1.0f), glm::radians((float)glfwGetTime() * -10.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
-			normalMappingShader.SetUniformMat4f("u_model", brickwallQuadModel);
-			brickWallDiffuseMap.Bind();
-			brickWallNormalMap.Bind(1);
+			parallaxMappingShader.SetUniformVec3f("u_lightPos", lightPos);
+			parallaxMappingShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
 
-			renderer.Draw(normalVAO, normalIBO, normalMappingShader);
+			parallaxMappingShader.SetUniform1f("u_HeightScale", 0.15f);
 
-			normalMappingShader.UnBind();
+			glm::mat4 brickwallQuadModel = glm::mat4(1.0f);
+			parallaxMappingShader.SetUniformMat4f("u_model", brickwallQuadModel);
+			brick2DiffuseMap.Bind();
+			brick2NormalMap.Bind(1);
+			brick2DepthMap.Bind(2);
+
+			renderer.Draw(parallaxVAO, parallaxIBO, parallaxMappingShader);
+
+			parallaxMappingShader.UnBind();
 
 
 			//render lightCube
