@@ -149,7 +149,7 @@ int main()
 	//GLCall(glFrontFace(GL_CW));
 
 	GLCall(glEnable(GL_BLEND));
-	//GLCall(glEnable(GL_MULTISAMPLE));
+	GLCall(glEnable(GL_MULTISAMPLE));
 	GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 	//GLCall(glEnable(GL_PROGRAM_POINT_SIZE));
 
@@ -468,6 +468,15 @@ int main()
 		Texture2D brick2DepthMap("res/Textures/bricks2_disp.jpg");
 		brick2DepthMap.Bind(2);
 
+		Texture2D toyBoxTexture("res/Textures/wood.png");
+		toyBoxTexture.Bind(3);
+
+		Texture2D toyBoxNormalMap("res/Textures/toy_box_normal.png");
+		toyBoxNormalMap.Bind(4);
+
+		Texture2D toyBoxDisplacementMap("res/Textures/toy_box_disp.png");
+		toyBoxDisplacementMap.Bind(5);
+
 		parallaxMappingShader.Bind();
 		parallaxMappingShader.SetUniform1i("u_diffuseMap", 0);
 		parallaxMappingShader.SetUniform1i("u_NormalMap", 1);
@@ -557,15 +566,35 @@ int main()
 			parallaxMappingShader.SetUniformVec3f("u_lightPos", lightPos);
 			parallaxMappingShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
 
-			parallaxMappingShader.SetUniform1f("u_HeightScale", 0.15f);
+			parallaxMappingShader.SetUniform1f("u_HeightScale", 0.1f);
 
-			glm::mat4 brickwallQuadModel = glm::mat4(1.0f);
+			glm::mat4 brickwallQuadModel = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			parallaxMappingShader.SetUniformMat4f("u_model", brickwallQuadModel);
 			brick2DiffuseMap.Bind();
 			brick2NormalMap.Bind(1);
 			brick2DepthMap.Bind(2);
 
+			parallaxMappingShader.SetUniform1i("u_diffuseMap", 0);
+			parallaxMappingShader.SetUniform1i("u_NormalMap", 1);
+			parallaxMappingShader.SetUniform1i("u_DepthMap", 2);
+
 			renderer.Draw(parallaxVAO, parallaxIBO, parallaxMappingShader);
+
+			brickwallQuadModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 2.0f))
+				* glm::rotate(glm::mat4(1.0f), glm::radians(135.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+			parallaxMappingShader.SetUniformMat4f("u_model", brickwallQuadModel);
+
+			toyBoxTexture.Bind(3);
+			toyBoxNormalMap.Bind(4);
+			toyBoxDisplacementMap.Bind(5);
+
+			parallaxMappingShader.SetUniform1i("u_diffuseMap", 3);
+			parallaxMappingShader.SetUniform1i("u_NormalMap", 4);
+			parallaxMappingShader.SetUniform1i("u_DepthMap", 5);
+
+			renderer.Draw(parallaxVAO, parallaxIBO, parallaxMappingShader);
+
 
 			parallaxMappingShader.UnBind();
 

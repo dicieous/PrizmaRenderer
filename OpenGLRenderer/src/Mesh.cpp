@@ -14,6 +14,8 @@ void Mesh::Draw(OpenGLShader& shader)
 
 	uint32_t diffuseNr = 1;
 	uint32_t specularNr = 1;
+	uint32_t normalNr = 1;
+	uint32_t heightNr = 1;
 
 	for (uint32_t i = 0; i < m_Textures.size(); i++)
 	{
@@ -27,6 +29,14 @@ void Mesh::Draw(OpenGLShader& shader)
 		else if (name == "texture_specular")
 		{
 			number = std::to_string(specularNr++);
+		}
+		else if (name == "texture_normal")
+		{
+			number = std::to_string(normalNr++);
+		}
+		else if (name == "texture_height")
+		{
+			number = std::to_string(heightNr++);
 		}
 
 		shader.SetUniform1i("material." + name + number, i);

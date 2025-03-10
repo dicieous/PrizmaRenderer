@@ -65,7 +65,7 @@ vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir)
 {
 	const float minLayers = 8.0;
 	const float maxLayers = 64.0;
-	float numLayers = mix(maxLayers, minLayers, max(dot(vec3(0.0, 0.0, 1.0), viewDir), 0.0));
+	float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));
 	
 	float layerDepth = 1.0 / numLayers;
 	float currentLayerDepth = 0.0;
