@@ -519,6 +519,8 @@
     <None Include="res\Shaders\PointShadowDepthShader.shader" />
     <None Include="res\Shaders\NormalMapping.shader" />
     <None Include="res\Shaders\ParallaxMapping.shader" />
+    <None Include="res\Shaders\hdrLighting.shader" />
+    <None Include="res\Shaders\hdr.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vendor\GLFW\include\GLFW\glfw3.h">

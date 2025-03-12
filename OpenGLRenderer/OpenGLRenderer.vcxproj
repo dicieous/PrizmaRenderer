@@ -118,6 +118,8 @@
     <None Include="res\Shaders\DepthDebugQuad.shader" />
     <None Include="res\Shaders\FrameBufferScreen.shader" />
     <None Include="res\Shaders\GeometryShader.shader" />
+    <None Include="res\Shaders\hdr.shader" />
+    <None Include="res\Shaders\hdrLighting.shader" />
     <None Include="res\Shaders\Instance.shader" />
     <None Include="res\Shaders\InstancedAsteroid.shader" />
     <None Include="res\Shaders\LightCube.shader" />
