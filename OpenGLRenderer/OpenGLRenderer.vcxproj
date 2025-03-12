@@ -115,6 +115,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="res\Shaders\Basic.shader" />
+    <None Include="res\Shaders\bloomBlur.shader" />
+    <None Include="res\Shaders\bloomLight.shader" />
+    <None Include="res\Shaders\bloom.shader" />
+    <None Include="res\Shaders\bloomOutput.shader" />
     <None Include="res\Shaders\DepthDebugQuad.shader" />
     <None Include="res\Shaders\FrameBufferScreen.shader" />
     <None Include="res\Shaders\GeometryShader.shader" />

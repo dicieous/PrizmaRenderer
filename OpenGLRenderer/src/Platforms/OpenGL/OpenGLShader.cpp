@@ -57,11 +57,15 @@ unsigned int OpenGLShader::CreateShader(const std::string& vertexSrc, const std:
 	{
 		int length;
 		GLCall(glGetProgramiv(shaderProgram, GL_INFO_LOG_LENGTH, &length));
-		char* message = (char*)_malloca(length * sizeof(char));
 
-		glGetProgramInfoLog(shaderProgram, length, &length, message);
-		std::cout << "Failed to Create Program \n" << std::endl;
-		std::cout << message << std::endl;
+		if (length > 0)
+		{
+			std::vector<char> message(length);
+			glGetProgramInfoLog(shaderProgram, length, nullptr, message.data());
+
+			std::cout << "Failed to Create Program \n" << std::endl;
+			std::cout << message.data() << std::endl;
+		}
 
 		GLCall(glDeleteProgram(shaderProgram));
 

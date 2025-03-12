@@ -521,6 +521,10 @@
     <None Include="res\Shaders\ParallaxMapping.shader" />
     <None Include="res\Shaders\hdrLighting.shader" />
     <None Include="res\Shaders\hdr.shader" />
+    <None Include="res\Shaders\bloom.shader" />
+    <None Include="res\Shaders\bloomLight.shader" />
+    <None Include="res\Shaders\bloomBlur.shader" />
+    <None Include="res\Shaders\bloomOutput.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vendor\GLFW\include\GLFW\glfw3.h">

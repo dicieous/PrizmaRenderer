@@ -14,7 +14,7 @@ Texture2D::Texture2D(const std::string& filePath)
 
 	if (m_LocalBuffer)
 	{
-		GLenum internalFormat = (m_BPP == 4) ? GL_RGBA : GL_RGB;
+		GLenum internalFormat = (m_BPP == 4) ? GL_SRGB_ALPHA : GL_SRGB;
 		GLenum dataFormat = (m_BPP == 4) ? GL_RGBA : GL_RGB;
 
 		GLCall(glGenTextures(1, &m_RendererID));
