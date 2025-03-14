@@ -527,6 +527,10 @@
     <None Include="res\Shaders\bloomOutput.shader" />
     <None Include="res\Shaders\gBuffer.shader" />
     <None Include="res\Shaders\deferredShading.shader" />
+    <None Include="res\Shaders\ssaoGeometryPass.shader" />
+    <None Include="res\Shaders\ssao.shader" />
+    <None Include="res\Shaders\ssaoBlur.shader" />
+    <None Include="res\Shaders\ssaoLighting.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vendor\GLFW\include\GLFW\glfw3.h">

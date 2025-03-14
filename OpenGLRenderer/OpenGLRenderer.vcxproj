@@ -143,6 +143,10 @@
     <None Include="res\Shaders\ShadowMappingDepth.shader" />
     <None Include="res\Shaders\SingleColorShader.shader" />
     <None Include="res\Shaders\Skybox.shader" />
+    <None Include="res\Shaders\ssao.shader" />
+    <None Include="res\Shaders\ssaoBlur.shader" />
+    <None Include="res\Shaders\ssaoGeometryPass.shader" />
+    <None Include="res\Shaders\ssaoLighting.shader" />
     <None Include="Vendor\GLFW\Debug\glfw3.pdb" />
     <None Include="vendor\glm\glm\detail\func_common.inl" />
     <None Include="vendor\glm\glm\detail\func_common_simd.inl" />

@@ -19,6 +19,7 @@
 #include "Camera.h"
 
 #include "Model.h"
+#include <random>
 
 #define BOXES 1
 #define MODEL 1
@@ -65,6 +66,11 @@ void ResizeFramebuffer(uint32_t& colorAttachment, uint32_t& rbo, int width, int 
 	GLCall(glBindRenderbuffer(GL_RENDERBUFFER, rbo));
 	GLCall(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height));
 	GLCall(glBindRenderbuffer(GL_RENDERBUFFER, 0));
+}
+
+float lerp(float a, float b, float f)
+{
+	return a + f * (b - a);
 }
 
 int main()
@@ -360,7 +366,7 @@ int main()
 		};
 
 		//glm::vec3 objectColor(1.0f, 0.7f, 0.19f);
-		glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
+		//glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
 
 		bool show_demo_window = true;
 		bool show_another_window = false;
@@ -376,31 +382,33 @@ int main()
 		glBindFramebuffer(GL_FRAMEBUFFER, gBufferFBO);
 
 		//Textures
-		uint32_t gPosition, gNormal, gAlbedoSpec;
+		uint32_t gPosition, gNormal, gAlbedo;
 
 		//Position Texture Buffer
 		glGenTextures(1, &gPosition);
 		glBindTexture(GL_TEXTURE_2D, gPosition);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
 
 		//Normal Texture Buffer
 		glGenTextures(1, &gNormal);
 		glBindTexture(GL_TEXTURE_2D, gNormal);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
 
 		//Albedo + specular Texture Buffer
-		glGenTextures(1, &gAlbedoSpec);
-		glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
+		glGenTextures(1, &gAlbedo);
+		glBindTexture(GL_TEXTURE_2D, gAlbedo);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedoSpec, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedo, 0);
 
 		//RenderBuffer
 		uint32_t depthRBO;
@@ -416,24 +424,83 @@ int main()
 			std::cout << "Framebuffer not complete!" << std::endl;
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+		//ssao FrameBuffer
+		uint32_t ssaoFBO;
+		glGenFramebuffers(1, &ssaoFBO);
+		glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
 
-		const unsigned int NR_LIGHTS = 32;
-		std::vector<glm::vec3> lightPositions;
-		std::vector<glm::vec3> lightColors;
-		srand(13);
-		for (unsigned int i = 0; i < NR_LIGHTS; i++)
+		//ssao Texture
+		uint32_t ssaoColorBuffer;
+		glGenTextures(1, &ssaoColorBuffer);
+		glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, SCR_WIDTH, SCR_HEIGHT, 0, GL_RED, GL_FLOAT, nullptr);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoColorBuffer, 0);
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+			std::cout << "Framebuffer not complete!" << std::endl;
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		//blur FrameBuffer
+		uint32_t ssaoBlurFBO;
+		glGenFramebuffers(1, &ssaoBlurFBO);
+		glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
+
+		//ssao blur Texture
+		uint32_t ssaoBlurColorBuffer;
+		glGenTextures(1, &ssaoBlurColorBuffer);
+		glBindTexture(GL_TEXTURE_2D, ssaoBlurColorBuffer);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, SCR_WIDTH, SCR_HEIGHT, 0, GL_RED, GL_FLOAT, nullptr);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoBlurColorBuffer, 0);
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+			std::cout << "Framebuffer not complete!" << std::endl;
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+		std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
+		std::default_random_engine generator;
+		std::vector<glm::vec3> ssaoKernel;
+		
+		for (unsigned int i = 0; i < 64; ++i)
 		{
-			// calculate slightly random offsets
-			float xPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
-			float yPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 4.0);
-			float zPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
-			lightPositions.push_back(glm::vec3(xPos, yPos, zPos));
-			// also calculate random color
-			float rColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.0
-			float gColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.0
-			float bColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.0
-			lightColors.push_back(glm::vec3(rColor, gColor, bColor));
+			glm::vec3 sample(
+				randomFloats(generator) * 2.0f - 1.0f,
+				randomFloats(generator) * 2.0f - 1.0f,
+				randomFloats(generator)
+			);
+			sample = glm::normalize(sample);
+			sample *= randomFloats(generator);
+
+			float scale = (float)i / 64.0f;
+			scale = lerp(0.1f, 1.0f, scale * scale);
+			ssaoKernel.push_back(sample);
 		}
+
+		std::vector<glm::vec3> ssaoNoise;
+		for (unsigned int i = 0; i < 16; i++)
+		{
+			glm::vec3 noise(
+				randomFloats(generator) * 2.0f - 1.0f,
+				randomFloats(generator) * 2.0f - 1.0f,
+				0.0f);
+			ssaoNoise.push_back(noise);
+		}
+
+		//noise Texture
+		uint32_t noiseTexture;
+		glGenTextures(1, &noiseTexture);
+		glBindTexture(GL_TEXTURE_2D, noiseTexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 4, 4, 0, GL_RGB, GL_FLOAT, &ssaoNoise[0]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		glm::vec3 lightPos = glm::vec3(2.0, 4.0, -2.0);
+		glm::vec3 lightColor = glm::vec3(0.3, 0.3, 0.7);
 
 		std::vector<glm::vec3> objectPositions;
 		objectPositions.push_back(glm::vec3(-3.0, -0.5, -3.0));
@@ -450,19 +517,34 @@ int main()
 
 		//OpenGLRenderer renderer;
 
-		OpenGLShader geometryPassShader("res/Shaders/gBuffer.shader");
-		geometryPassShader.Bind();
+		OpenGLShader ssaoGeometryPassShader("res/Shaders/ssaoGeometryPass.shader");
+		ssaoGeometryPassShader.Bind();
 
-		OpenGLShader lightingPassShader("res/Shaders/deferredShading.shader");
-		lightingPassShader.Bind();
+		OpenGLShader ssaoBlurPassShader("res/Shaders/ssaoBlur.shader");
+		ssaoBlurPassShader.Bind();
+
+		OpenGLShader ssaoShader("res/Shaders/ssao.shader");
+		ssaoShader.Bind();
+
+		OpenGLShader ssaoLightingPassShader("res/Shaders/ssaoLighting.shader");
+		ssaoLightingPassShader.Bind();
 
 
 		Model model("res/Models/backpack/backpack.obj");
 
-		lightingPassShader.Bind();
-		lightingPassShader.SetUniform1i("u_gPosition", 0);
-		lightingPassShader.SetUniform1i("u_gNormal", 1);
-		lightingPassShader.SetUniform1i("u_gAlbedoSpec", 2);
+		ssaoBlurPassShader.Bind();
+		ssaoBlurPassShader.SetUniform1i("u_ssaoInput", 0);
+
+		ssaoShader.Bind();
+		ssaoShader.SetUniform1i("u_gPosition", 0);
+		ssaoShader.SetUniform1i("u_gNormal", 1);
+		ssaoShader.SetUniform1i("u_texNoise", 2);
+
+		ssaoLightingPassShader.Bind();
+		ssaoLightingPassShader.SetUniform1i("u_gPosition", 0);
+		ssaoLightingPassShader.SetUniform1i("u_gNormal", 1);
+		ssaoLightingPassShader.SetUniform1i("u_gAlbedo", 2);
+		ssaoLightingPassShader.SetUniform1i("u_ssao", 3);
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 #endif
@@ -482,7 +564,7 @@ int main()
 
 		SetupImGuiStyleWithRoundedBorders();
 
-		glm::vec3 lightPos(0.5f, 1.0f, 0.3f);
+		//glm::vec3 lightPos(0.5f, 1.0f, 0.3f);
 
 		while (!glfwWindowShouldClose(window))
 		{
@@ -498,77 +580,114 @@ int main()
 			Camera->OnUpdate(window);
 
 #if MODEL
+			//Geometry Pass
 			glBindFramebuffer(GL_FRAMEBUFFER, gBufferFBO);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			GLCall(glDisable(GL_BLEND));
-			geometryPassShader.Bind();
-			geometryPassShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
-			geometryPassShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
+			ssaoGeometryPassShader.Bind();
+			ssaoGeometryPassShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
+			ssaoGeometryPassShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
 
-			for (int i = 0; i < objectPositions.size(); i++)
-			{
-				glm::mat4 matModel = glm::translate(glm::mat4(1.0f), objectPositions[i])
-					* glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
-				geometryPassShader.SetUniformMat4f("u_model", matModel);
-				model.Draw(geometryPassShader);
-			}
+			glm::mat4 roomModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 3.3f, 0.0f))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(10.0f, 7.5f, 10.0f));
 
-			geometryPassShader.UnBind();
-			GLCall(glEnable(GL_BLEND));  
+			ssaoGeometryPassShader.SetUniformMat4f("u_model", roomModel);
+			
+			ssaoGeometryPassShader.SetUniform1i("u_invertedNormals", 1);
+			renderer.Draw(va, ib, ssaoGeometryPassShader);
+			ssaoGeometryPassShader.SetUniform1i("u_invertedNormals", 0);
+
+			glm::mat4 matModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.5f, 0.0f))
+				* glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
+
+			ssaoGeometryPassShader.SetUniformMat4f("u_model", matModel);
+			model.Draw(ssaoGeometryPassShader);
+
+			ssaoGeometryPassShader.UnBind();
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			lightingPassShader.Bind();
-			for (unsigned int i = 0; i < lightPositions.size(); i++)
+			//SSAO Pass
+			glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
+			glClear(GL_COLOR_BUFFER_BIT);
+			ssaoShader.Bind();
+			for (int i = 0; i < 64; i++)
 			{
-				lightingPassShader.SetUniformVec3f("u_lights[" + std::to_string(i) + "].Position", lightPositions[i]);
-				lightingPassShader.SetUniformVec3f("u_lights[" + std::to_string(i) + "].Color", lightColors[i]);
-				// update attenuation parameters and calculate radius
-				const float constant = 1.0;
-				const float linear = 0.7f;
-				const float quadratic = 1.8f;
-				lightingPassShader.SetUniform1f("u_lights[" + std::to_string(i) + "].Linear", linear);
-				lightingPassShader.SetUniform1f("u_lights[" + std::to_string(i) + "].Quadratic", quadratic);
-				const float maxBrightness = std::fmaxf(std::fmaxf(lightColors[i].r, lightColors[i].g), lightColors[i].b);
-				float radius = (-linear + std::sqrt(linear * linear - 4 * quadratic * (constant - (256.0f / 5.0f) * maxBrightness))) / (2.0f * quadratic);
-				lightingPassShader.SetUniform1f("u_lights[" + std::to_string(i) + "].Radius", radius);
+				ssaoShader.SetUniformVec3f("u_samples[" + std::to_string(i) + "]", ssaoKernel[i]);
 			}
-			lightingPassShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
+			ssaoShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
 			
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, gPosition);
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, gNormal);
 			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
+			glBindTexture(GL_TEXTURE_2D, noiseTexture);
+
+			quadVAO.Bind();
+			quadIBO.Bind();
+			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+			
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+			//blur
+			glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
+			glClear(GL_COLOR_BUFFER_BIT);
+			ssaoBlurPassShader.Bind();
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
 
 			quadVAO.Bind();
 			quadIBO.Bind();
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, gBufferFBO);
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-			glBlitFramebuffer(0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+			//Lighting Pass
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			ssaoLightingPassShader.Bind();
+			ssaoLightingPassShader.SetUniformVec3f("u_light.Position", lightPos);
+			ssaoLightingPassShader.SetUniformVec3f("u_light.Color", lightColor);
+			// update attenuation parameters and calculate radius
+			const float linear = 0.09f;
+			const float quadratic = 0.032f;
+			ssaoLightingPassShader.SetUniform1f("u_light.Linear", linear);
+			ssaoLightingPassShader.SetUniform1f("u_light.Quadratic", quadratic);
+		
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, gPosition);
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, gNormal);
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, gAlbedo);
+			glActiveTexture(GL_TEXTURE3);
+			glBindTexture(GL_TEXTURE_2D, ssaoBlurColorBuffer);
+
+			quadVAO.Bind();
+			quadIBO.Bind();
+			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+			GLCall(glEnable(GL_BLEND));  
+
+			//glBindFramebuffer(GL_READ_FRAMEBUFFER, gBufferFBO);
+			//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			//
+			//glBlitFramebuffer(0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+			//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 			//render lightCube
 
-			lightSrcShader.Bind();
+			/*lightSrcShader.Bind();
 			lightSrcShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
 			lightSrcShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
-			for (int i = 0; i < lightPositions.size(); i++)
-			{
-				glm::mat4 lightCube = glm::translate(glm::mat4(1.0f), glm::vec3(lightPositions[i]))
-					* glm::scale(glm::mat4(1.0f), glm::vec3(0.25f));
+			glm::mat4 lightCube = glm::translate(glm::mat4(1.0f), glm::vec3(lightPos))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(0.25f));
 
-				lightSrcShader.SetUniformMat4f("u_model", lightCube);
-				lightSrcShader.SetUniformVec3f("u_lightColor", lightColors[i]);
-				renderer.Draw(va, ib, lightSrcShader);
-			}
+			lightSrcShader.SetUniformMat4f("u_model", lightCube);
+			lightSrcShader.SetUniformVec3f("u_lightColor", lightColor);
+			renderer.Draw(va, ib, lightSrcShader);
 
 			lightSrcShader.UnBind();
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
 
 
 #endif
