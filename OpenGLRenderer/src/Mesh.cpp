@@ -39,7 +39,7 @@ void Mesh::Draw(OpenGLShader& shader)
 			number = std::to_string(heightNr++);
 		}
 
-		shader.SetUniform1i("material." + name + number, i);
+		shader.SetUniform1i(/*"material." +*/ name + number, i);
 		m_Textures[i].Texture->Bind(i);
 	}
 
@@ -65,6 +65,8 @@ void Mesh::SetupMesh()
 	layout.Push<float>(3); //Position
 	layout.Push<float>(3); //Normal
 	layout.Push<float>(2); //TexCoords
+	layout.Push<float>(3); //Tangent
+	layout.Push<float>(3); //BiTangent
 
 	m_VertexArray->AddBuffer(*m_VertexBuffer, layout);
 

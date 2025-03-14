@@ -21,10 +21,10 @@
 #include "Model.h"
 
 #define BOXES 1
-#define MODEL 0
+#define MODEL 1
 
-const uint32_t SCR_WIDTH = 1280;
-const uint32_t SCR_HEIGHT = 720;
+const uint32_t SCR_WIDTH = 1600;
+const uint32_t SCR_HEIGHT = 900;
 
 static glm::vec2 s_ViewportSize{ SCR_WIDTH, SCR_HEIGHT };
 
@@ -146,7 +146,7 @@ int main()
 	GLCall(glEnable(GL_STENCIL_TEST));
 
 	GLCall(glEnable(GL_BLEND));
-	//GLCall(glEnable(GL_MULTISAMPLE));
+	GLCall(glEnable(GL_MULTISAMPLE));
 	GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 	//GLCall(glEnable(GL_PROGRAM_POINT_SIZE));
 
@@ -247,7 +247,7 @@ int main()
 		//Create Fragment Shader
 		OpenGLShader bloomShader("res/Shaders/bloom.shader");
 		bloomShader.Bind();
-		
+
 		OpenGLShader lightSrcShader("res/Shaders/bloomLight.shader");
 		lightSrcShader.Bind();
 
@@ -368,94 +368,101 @@ int main()
 
 		OpenGLRenderer renderer;
 #endif
-		//Bloom Effect
+		//Deferred Rendering
 
 		//Create FrameBuffers
-		uint32_t hdrFBO;
-		glGenFramebuffers(1, &hdrFBO);
-		glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+		uint32_t gBufferFBO;
+		glGenFramebuffers(1, &gBufferFBO);
+		glBindFramebuffer(GL_FRAMEBUFFER, gBufferFBO);
 
 		//Textures
-		uint32_t colorBuffers[2];
-		glGenTextures(2, colorBuffers);
+		uint32_t gPosition, gNormal, gAlbedoSpec;
 
-		for (int i = 0; i < 2; i++)
-		{
-			glBindTexture(GL_TEXTURE_2D, colorBuffers[i]);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorBuffers[i], 0);
-		}
+		//Position Texture Buffer
+		glGenTextures(1, &gPosition);
+		glBindTexture(GL_TEXTURE_2D, gPosition);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
+
+		//Normal Texture Buffer
+		glGenTextures(1, &gNormal);
+		glBindTexture(GL_TEXTURE_2D, gNormal);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
+
+		//Albedo + specular Texture Buffer
+		glGenTextures(1, &gAlbedoSpec);
+		glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedoSpec, 0);
 
 		//RenderBuffer
 		uint32_t depthRBO;
 		glGenRenderbuffers(1, &depthRBO);
 		glBindRenderbuffer(GL_RENDERBUFFER, depthRBO);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, SCR_WIDTH, SCR_HEIGHT);
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRBO);
 
-		uint32_t attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-		glDrawBuffers(2, attachments);
+		uint32_t attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+		glDrawBuffers(3, attachments);
 
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 			std::cout << "Framebuffer not complete!" << std::endl;
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-		uint32_t pingpongFBO[2];
-		glGenFramebuffers(2, pingpongFBO);
 
-		uint32_t pingPongColorBuffer[2];
-		glGenTextures(2,pingPongColorBuffer);
-
-		for (int i = 0; i < 2; i++)
+		const unsigned int NR_LIGHTS = 32;
+		std::vector<glm::vec3> lightPositions;
+		std::vector<glm::vec3> lightColors;
+		srand(13);
+		for (unsigned int i = 0; i < NR_LIGHTS; i++)
 		{
-			glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[i]);
-			glBindTexture(GL_TEXTURE_2D, pingPongColorBuffer[i]);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pingPongColorBuffer[i], 0);
-			if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-				std::cout << "Framebuffer not complete! for: " << i + 1 << "Texture" << std::endl;
+			// calculate slightly random offsets
+			float xPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
+			float yPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 4.0);
+			float zPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
+			lightPositions.push_back(glm::vec3(xPos, yPos, zPos));
+			// also calculate random color
+			float rColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.0
+			float gColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.0
+			float bColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.0
+			lightColors.push_back(glm::vec3(rColor, gColor, bColor));
 		}
 
-
-		// positions
-		std::vector<glm::vec3> lightPositions;
-		lightPositions.push_back(glm::vec3(0.0f, 0.5f, 1.5f));
-		lightPositions.push_back(glm::vec3(-4.0f, 0.5f, -3.0f));
-		lightPositions.push_back(glm::vec3(3.0f, 0.5f, 1.0f));
-		lightPositions.push_back(glm::vec3(-.8f, 2.4f, -1.0f));
-		// colors
-		std::vector<glm::vec3> lightColors;
-		lightColors.push_back(glm::vec3(5.0f, 5.0f, 5.0f));
-		lightColors.push_back(glm::vec3(10.0f, 0.0f, 0.0f));
-		lightColors.push_back(glm::vec3(0.0f, 0.0f, 15.0f));
-		lightColors.push_back(glm::vec3(0.0f, 5.0f, 0.0f));
-
-		bloomShader.Bind();
-		bloomShader.SetUniform1i("u_diffuseColor", 0);
-		bloomBlurShader.Bind();
-		bloomBlurShader.SetUniform1i("u_image", 0);
-		bloomFinalShader.Bind();
-		bloomFinalShader.SetUniform1i("u_scene", 0);
-		bloomFinalShader.SetUniform1i("u_bloomblur", 1);
+		std::vector<glm::vec3> objectPositions;
+		objectPositions.push_back(glm::vec3(-3.0, -0.5, -3.0));
+		objectPositions.push_back(glm::vec3(0.0, -0.5, -3.0));
+		objectPositions.push_back(glm::vec3(3.0, -0.5, -3.0));
+		objectPositions.push_back(glm::vec3(-3.0, -0.5, 0.0));
+		objectPositions.push_back(glm::vec3(0.0, -0.5, 0.0));
+		objectPositions.push_back(glm::vec3(3.0, -0.5, 0.0));
+		objectPositions.push_back(glm::vec3(-3.0, -0.5, 3.0));
+		objectPositions.push_back(glm::vec3(0.0, -0.5, 3.0));
+		objectPositions.push_back(glm::vec3(3.0, -0.5, 3.0));
 
 #if MODEL
-		OpenGLRenderer renderer;
 
-		OpenGLShader ModelShader("res/Shaders/Model_Loading.shader");
-		ModelShader.Bind();
+		//OpenGLRenderer renderer;
 
-		//OpenGLShader ModelNormalsVisualizerShader("res/Shaders/Model_Normals.shader");
-		//ModelNormalsVisualizerShader.Bind();
+		OpenGLShader geometryPassShader("res/Shaders/gBuffer.shader");
+		geometryPassShader.Bind();
+
+		OpenGLShader lightingPassShader("res/Shaders/deferredShading.shader");
+		lightingPassShader.Bind();
+
 
 		Model model("res/Models/backpack/backpack.obj");
+
+		lightingPassShader.Bind();
+		lightingPassShader.SetUniform1i("u_gPosition", 0);
+		lightingPassShader.SetUniform1i("u_gNormal", 1);
+		lightingPassShader.SetUniform1i("u_gAlbedoSpec", 2);
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 #endif
@@ -491,35 +498,82 @@ int main()
 			Camera->OnUpdate(window);
 
 #if MODEL
+			glBindFramebuffer(GL_FRAMEBUFFER, gBufferFBO);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			GLCall(glDisable(GL_BLEND));
+			geometryPassShader.Bind();
+			geometryPassShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
+			geometryPassShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
 
-			ModelShader.Bind();
+			for (int i = 0; i < objectPositions.size(); i++)
+			{
+				glm::mat4 matModel = glm::translate(glm::mat4(1.0f), objectPositions[i])
+					* glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
+				geometryPassShader.SetUniformMat4f("u_model", matModel);
+				model.Draw(geometryPassShader);
+			}
 
-			ModelShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
-			ModelShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
+			geometryPassShader.UnBind();
+			GLCall(glEnable(GL_BLEND));  
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-			//ModelShader.SetUniform1f("u_time", glfwGetTime());
-			//ModelShader.SetUniform1i("u_Skybox", 0);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			lightingPassShader.Bind();
+			for (unsigned int i = 0; i < lightPositions.size(); i++)
+			{
+				lightingPassShader.SetUniformVec3f("u_lights[" + std::to_string(i) + "].Position", lightPositions[i]);
+				lightingPassShader.SetUniformVec3f("u_lights[" + std::to_string(i) + "].Color", lightColors[i]);
+				// update attenuation parameters and calculate radius
+				const float constant = 1.0;
+				const float linear = 0.7f;
+				const float quadratic = 1.8f;
+				lightingPassShader.SetUniform1f("u_lights[" + std::to_string(i) + "].Linear", linear);
+				lightingPassShader.SetUniform1f("u_lights[" + std::to_string(i) + "].Quadratic", quadratic);
+				const float maxBrightness = std::fmaxf(std::fmaxf(lightColors[i].r, lightColors[i].g), lightColors[i].b);
+				float radius = (-linear + std::sqrt(linear * linear - 4 * quadratic * (constant - (256.0f / 5.0f) * maxBrightness))) / (2.0f * quadratic);
+				lightingPassShader.SetUniform1f("u_lights[" + std::to_string(i) + "].Radius", radius);
+			}
+			lightingPassShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
+			
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, gPosition);
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, gNormal);
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
 
-			glm::mat4 matModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
-			ModelShader.SetUniformMat4f("u_model", matModel);
-			//glActiveTexture(GL_TEXTURE0);
-			//glBindTexture(GL_TEXTURE_CUBE_MAP, CubeMapID);
+			quadVAO.Bind();
+			quadIBO.Bind();
+			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-			model.Draw(ModelShader);
-			ModelShader.UnBind();
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, gBufferFBO);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-			//ModelNormalsVisualizerShader.Bind();
-			//ModelNormalsVisualizerShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
-			//ModelNormalsVisualizerShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
-			//ModelNormalsVisualizerShader.SetUniformMat4f("u_model", matModel);
+			glBlitFramebuffer(0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-			//model.Draw(ModelNormalsVisualizerShader);
-			//ModelNormalsVisualizerShader.UnBind();
+			//render lightCube
+
+			lightSrcShader.Bind();
+			lightSrcShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
+			lightSrcShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
+			for (int i = 0; i < lightPositions.size(); i++)
+			{
+				glm::mat4 lightCube = glm::translate(glm::mat4(1.0f), glm::vec3(lightPositions[i]))
+					* glm::scale(glm::mat4(1.0f), glm::vec3(0.25f));
+
+				lightSrcShader.SetUniformMat4f("u_model", lightCube);
+				lightSrcShader.SetUniformVec3f("u_lightColor", lightColors[i]);
+				renderer.Draw(va, ib, lightSrcShader);
+			}
+
+			lightSrcShader.UnBind();
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 
 #endif
 
-#if BOXES
+#if 0
 			glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -650,13 +704,13 @@ int main()
 			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 			glfwSwapBuffers(window);
-	}
-}
+			}
+		}
 
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 
 	glfwTerminate();
-}
+	}
 

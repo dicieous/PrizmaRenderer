@@ -119,8 +119,10 @@
     <None Include="res\Shaders\bloomLight.shader" />
     <None Include="res\Shaders\bloom.shader" />
     <None Include="res\Shaders\bloomOutput.shader" />
+    <None Include="res\Shaders\deferredShading.shader" />
     <None Include="res\Shaders\DepthDebugQuad.shader" />
     <None Include="res\Shaders\FrameBufferScreen.shader" />
+    <None Include="res\Shaders\gBuffer.shader" />
     <None Include="res\Shaders\GeometryShader.shader" />
     <None Include="res\Shaders\hdr.shader" />
     <None Include="res\Shaders\hdrLighting.shader" />

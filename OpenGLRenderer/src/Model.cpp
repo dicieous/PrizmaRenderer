@@ -54,7 +54,8 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 	for (uint32_t i = 0; i < mesh->mNumVertices; i++)
 	{
 		glm::vec3 positions = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
-		glm::vec3 normals = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
+		glm::vec3 normals = glm::vec3(0.0f);
+		if(mesh->HasNormals()) normals = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
 
 		glm::vec3 tangents(0.0f);
 		glm::vec3 biTangents(0.0f);

@@ -9,12 +9,12 @@
 Texture2D::Texture2D(const std::string& filePath)
 	:m_RendererID(0), m_FilePath(filePath), m_LocalBuffer(nullptr), m_width(0), m_height(0), m_BPP(0)
 {
-	stbi_set_flip_vertically_on_load(0);
+	stbi_set_flip_vertically_on_load(1);
 	m_LocalBuffer = stbi_load(filePath.c_str(), &m_width, &m_height, &m_BPP, 0);
 
 	if (m_LocalBuffer)
 	{
-		GLenum internalFormat = (m_BPP == 4) ? GL_SRGB_ALPHA : GL_SRGB;
+		GLenum internalFormat = (m_BPP == 4) ? GL_RGBA : GL_RGB;
 		GLenum dataFormat = (m_BPP == 4) ? GL_RGBA : GL_RGB;
 
 		GLCall(glGenTextures(1, &m_RendererID));
@@ -23,7 +23,7 @@ Texture2D::Texture2D(const std::string& filePath)
 		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
 		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
 
-		GLint texWrappingMode = m_BPP == 4 ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+		GLint texWrappingMode = m_BPP == 4 ? GL_CLAMP_TO_EDGE : GL_CLAMP_TO_BORDER;
 
 		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, texWrappingMode));
 		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, texWrappingMode));

@@ -525,6 +525,8 @@
     <None Include="res\Shaders\bloomLight.shader" />
     <None Include="res\Shaders\bloomBlur.shader" />
     <None Include="res\Shaders\bloomOutput.shader" />
+    <None Include="res\Shaders\gBuffer.shader" />
+    <None Include="res\Shaders\deferredShading.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vendor\GLFW\include\GLFW\glfw3.h">
