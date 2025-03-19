@@ -251,22 +251,7 @@ int main()
 		lightVA.AddBuffer(vb, lightSourceLayout);
 
 		//Create Fragment Shader
-		OpenGLShader bloomShader("res/Shaders/bloom.shader");
-		bloomShader.Bind();
-
-		OpenGLShader lightSrcShader("res/Shaders/bloomLight.shader");
-		lightSrcShader.Bind();
-
-		OpenGLShader bloomFinalShader("res/Shaders/bloomOutput.shader");
-		bloomFinalShader.Bind();
-
-		OpenGLShader bloomBlurShader("res/Shaders/bloomBlur.shader");
-		bloomBlurShader.Bind();
-
-
-		//Bind Textures
-		Texture2D diffuseMap("res/Textures/container2.png");
-		diffuseMap.Bind();
+		
 
 		//Texture2D specularMap("res/Textures/container2_specular.png");
 		//specularMap.Bind(1);
@@ -337,214 +322,119 @@ int main()
 		quadVAO.Bind();
 		quadVAO.AddBuffer(quadVBO, quadLayout);
 
-		quadVAO.UnBind();
+		quadVAO.UnBind(); 
 
-		glm::vec3 cubePositions[] = {
-			glm::vec3(0.0f,  0.0f,  0.0f),
-			glm::vec3(2.0f,  5.0f, -15.0f),
-			glm::vec3(-1.5f, -2.2f, -2.5f),
-			glm::vec3(-3.8f, -2.0f, -12.3f),
-			glm::vec3(2.4f, -0.4f, -3.5f),
-			glm::vec3(-1.7f,  3.0f, -7.5f),
-			glm::vec3(1.3f, -2.0f, -2.5f),
-			glm::vec3(1.5f,  2.0f, -2.5f),
-			glm::vec3(1.5f,  0.2f, -1.5f),
-			glm::vec3(-1.3f,  1.0f, -1.5f)
-		};
+		//Sphere
+		std::vector<glm::vec3> spherePositions;
+		std::vector<glm::vec2> sphereUV;
+		std::vector<glm::vec3> sphereNormals;
+		std::vector<uint32_t> sphereIndices;
 
-		glm::vec3 pointLightPositions[] = {
-			glm::vec3(0.4f,  1.5f,  -0.5f),
-			glm::vec3(2.3f, -2.3f, -4.0f),
-			glm::vec3(-4.0f,  2.0f, -12.0f),
-			glm::vec3(0.0f,  0.0f, -3.0f),
-			//glm::vec3(0.0f,  -6.0f, 0.0f),
-		};
+		const unsigned int X_SEGMENTS = 64;
+		const unsigned int Y_SEGMENTS = 64;
+		const float PI = 3.14159265359f;
+		for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
+		{
+			for (unsigned int y = 0; y <= Y_SEGMENTS; ++y)
+			{
+				float xSegment = (float)x / (float)X_SEGMENTS;
+				float ySegment = (float)y / (float)Y_SEGMENTS;
+				float xPos = std::cos(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
+				float yPos = std::cos(ySegment * PI);
+				float zPos = std::sin(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
 
-		glm::vec3 spotLightPositions[] = {
-			glm::vec3(0.5f,  0.2f,  2.0f),
-			glm::vec3(2.3f, 3.3f, -4.0f),
-		};
+				spherePositions.push_back(glm::vec3(xPos, yPos, zPos));
+				sphereUV.push_back(glm::vec2(xSegment, ySegment));
+				sphereNormals.push_back(glm::vec3(xPos, yPos, zPos));
+			}
+		}
 
-		//glm::vec3 objectColor(1.0f, 0.7f, 0.19f);
-		//glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
+		bool oddRow = false;
+		for (uint32_t y = 0; y < Y_SEGMENTS; ++y)
+		{
+			if (!oddRow) // even rows: y == 0, y == 2; and so on
+			{
+				for (uint32_t x = 0; x <= X_SEGMENTS; ++x)
+				{
+					sphereIndices.push_back(y * (X_SEGMENTS + 1) + x);
+					sphereIndices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
+				}
+			}
+			else
+			{
+				for (int x = X_SEGMENTS; x >= 0; --x)
+				{
+					sphereIndices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
+					sphereIndices.push_back(y * (X_SEGMENTS + 1) + x);
+				}
+			}
+			oddRow = !oddRow;
+		}
+		uint32_t indexCount = static_cast<uint32_t>(sphereIndices.size());
 
-		bool show_demo_window = true;
-		bool show_another_window = false;
-		ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+		std::vector<float> data;
+		for (uint32_t i = 0; i < spherePositions.size(); ++i)
+		{
+			data.push_back(spherePositions[i].x);
+			data.push_back(spherePositions[i].y);
+			data.push_back(spherePositions[i].z);
+			if (sphereNormals.size() > 0)
+			{
+				data.push_back(sphereNormals[i].x);
+				data.push_back(sphereNormals[i].y);
+				data.push_back(sphereNormals[i].z);
+			}
+			if (sphereUV.size() > 0)
+			{
+				data.push_back(sphereUV[i].x);
+				data.push_back(sphereUV[i].y);
+			}
+		}
+
+		OpenGLVertexArray sphereVAO;
+
+		OpenGLVertexBuffer sphereVBO(data.size() * sizeof(float), data.data());
+		OpenGLIndexBuffer sphereIBO(indexCount, sphereIndices.data());
+
+		VertexBufferLayout sphereLayout;
+		sphereLayout.Push<float>(3); //Position
+		sphereLayout.Push<float>(3); //Normal
+		sphereLayout.Push<float>(2); //TexCoords
+
+		sphereVAO.AddBuffer(sphereVBO, sphereLayout);
+
+		OpenGLShader pbrShader("res/Shaders/pbr.shader");
+		pbrShader.Bind();
+		pbrShader.SetUniform1i("u_albedoMap", 0);
+		pbrShader.SetUniform1i("u_normalMap", 1);
+		pbrShader.SetUniform1i("u_metallicMap", 2);
+		pbrShader.SetUniform1i("u_roughnessMap", 3);
+		pbrShader.SetUniform1i("u_aoMap", 4);
+
+		Texture2D AlbedoMap("res/Textures/rustedTex/rustediron2_basecolor.png");
+		AlbedoMap.Bind();
+
+		Texture2D NormalMap("res/Textures/rustedTex/rustediron2_normal.png");
+		NormalMap.Bind(1);
+
+		Texture2D MetallicMap("res/Textures/rustedTex/rustediron2_metallic.png");
+		MetallicMap.Bind(2);
+
+		Texture2D RoughnessMap("res/Textures/rustedTex/rustediron2_roughness.png");
+		RoughnessMap.Bind(3);
+
+		Texture2D AOMap("res/Textures/rustedTex/rustediron2_ao.png");
+		AOMap.Bind(4);
 
 		OpenGLRenderer renderer;
 #endif
-		//Deferred Rendering
-
-		//Create FrameBuffers
-		uint32_t gBufferFBO;
-		glGenFramebuffers(1, &gBufferFBO);
-		glBindFramebuffer(GL_FRAMEBUFFER, gBufferFBO);
-
-		//Textures
-		uint32_t gPosition, gNormal, gAlbedo;
-
-		//Position Texture Buffer
-		glGenTextures(1, &gPosition);
-		glBindTexture(GL_TEXTURE_2D, gPosition);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
-
-		//Normal Texture Buffer
-		glGenTextures(1, &gNormal);
-		glBindTexture(GL_TEXTURE_2D, gNormal);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
-
-		//Albedo + specular Texture Buffer
-		glGenTextures(1, &gAlbedo);
-		glBindTexture(GL_TEXTURE_2D, gAlbedo);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedo, 0);
-
-		//RenderBuffer
-		uint32_t depthRBO;
-		glGenRenderbuffers(1, &depthRBO);
-		glBindRenderbuffer(GL_RENDERBUFFER, depthRBO);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, SCR_WIDTH, SCR_HEIGHT);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRBO);
-
-		uint32_t attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-		glDrawBuffers(3, attachments);
-
-		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-			std::cout << "Framebuffer not complete!" << std::endl;
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-		//ssao FrameBuffer
-		uint32_t ssaoFBO;
-		glGenFramebuffers(1, &ssaoFBO);
-		glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
-
-		//ssao Texture
-		uint32_t ssaoColorBuffer;
-		glGenTextures(1, &ssaoColorBuffer);
-		glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, SCR_WIDTH, SCR_HEIGHT, 0, GL_RED, GL_FLOAT, nullptr);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoColorBuffer, 0);
-		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-			std::cout << "Framebuffer not complete!" << std::endl;
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-		//blur FrameBuffer
-		uint32_t ssaoBlurFBO;
-		glGenFramebuffers(1, &ssaoBlurFBO);
-		glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
-
-		//ssao blur Texture
-		uint32_t ssaoBlurColorBuffer;
-		glGenTextures(1, &ssaoBlurColorBuffer);
-		glBindTexture(GL_TEXTURE_2D, ssaoBlurColorBuffer);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, SCR_WIDTH, SCR_HEIGHT, 0, GL_RED, GL_FLOAT, nullptr);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoBlurColorBuffer, 0);
-		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-			std::cout << "Framebuffer not complete!" << std::endl;
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-		std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
-		std::default_random_engine generator;
-		std::vector<glm::vec3> ssaoKernel;
 		
-		for (unsigned int i = 0; i < 64; ++i)
-		{
-			glm::vec3 sample(
-				randomFloats(generator) * 2.0f - 1.0f,
-				randomFloats(generator) * 2.0f - 1.0f,
-				randomFloats(generator)
-			);
-			sample = glm::normalize(sample);
-			sample *= randomFloats(generator);
-
-			float scale = (float)i / 64.0f;
-			scale = lerp(0.1f, 1.0f, scale * scale);
-			ssaoKernel.push_back(sample);
-		}
-
-		std::vector<glm::vec3> ssaoNoise;
-		for (unsigned int i = 0; i < 16; i++)
-		{
-			glm::vec3 noise(
-				randomFloats(generator) * 2.0f - 1.0f,
-				randomFloats(generator) * 2.0f - 1.0f,
-				0.0f);
-			ssaoNoise.push_back(noise);
-		}
-
-		//noise Texture
-		uint32_t noiseTexture;
-		glGenTextures(1, &noiseTexture);
-		glBindTexture(GL_TEXTURE_2D, noiseTexture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 4, 4, 0, GL_RGB, GL_FLOAT, &ssaoNoise[0]);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glBindTexture(GL_TEXTURE_2D, 0);
-
-		glm::vec3 lightPos = glm::vec3(2.0, 4.0, -2.0);
-		glm::vec3 lightColor = glm::vec3(0.3, 0.3, 0.7);
-
-		std::vector<glm::vec3> objectPositions;
-		objectPositions.push_back(glm::vec3(-3.0, -0.5, -3.0));
-		objectPositions.push_back(glm::vec3(0.0, -0.5, -3.0));
-		objectPositions.push_back(glm::vec3(3.0, -0.5, -3.0));
-		objectPositions.push_back(glm::vec3(-3.0, -0.5, 0.0));
-		objectPositions.push_back(glm::vec3(0.0, -0.5, 0.0));
-		objectPositions.push_back(glm::vec3(3.0, -0.5, 0.0));
-		objectPositions.push_back(glm::vec3(-3.0, -0.5, 3.0));
-		objectPositions.push_back(glm::vec3(0.0, -0.5, 3.0));
-		objectPositions.push_back(glm::vec3(3.0, -0.5, 3.0));
 
 #if MODEL
 
 		//OpenGLRenderer renderer;
 
-		OpenGLShader ssaoGeometryPassShader("res/Shaders/ssaoGeometryPass.shader");
-		ssaoGeometryPassShader.Bind();
-
-		OpenGLShader ssaoBlurPassShader("res/Shaders/ssaoBlur.shader");
-		ssaoBlurPassShader.Bind();
-
-		OpenGLShader ssaoShader("res/Shaders/ssao.shader");
-		ssaoShader.Bind();
-
-		OpenGLShader ssaoLightingPassShader("res/Shaders/ssaoLighting.shader");
-		ssaoLightingPassShader.Bind();
-
-
 		Model model("res/Models/backpack/backpack.obj");
-
-		ssaoBlurPassShader.Bind();
-		ssaoBlurPassShader.SetUniform1i("u_ssaoInput", 0);
-
-		ssaoShader.Bind();
-		ssaoShader.SetUniform1i("u_gPosition", 0);
-		ssaoShader.SetUniform1i("u_gNormal", 1);
-		ssaoShader.SetUniform1i("u_texNoise", 2);
-
-		ssaoLightingPassShader.Bind();
-		ssaoLightingPassShader.SetUniform1i("u_gPosition", 0);
-		ssaoLightingPassShader.SetUniform1i("u_gNormal", 1);
-		ssaoLightingPassShader.SetUniform1i("u_gAlbedo", 2);
-		ssaoLightingPassShader.SetUniform1i("u_ssao", 3);
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 #endif
@@ -564,7 +454,17 @@ int main()
 
 		SetupImGuiStyleWithRoundedBorders();
 
-		//glm::vec3 lightPos(0.5f, 1.0f, 0.3f);
+
+		glm::vec3 lightPositions[] = {
+			 glm::vec3(0.0f, 0.0f, 10.0f),
+		};
+		glm::vec3 lightColors[] = {
+			glm::vec3(150.0f, 150.0f, 150.0f),
+		};
+
+		int nrRows = 7;
+		int nrColumns = 7;
+		float spacing = 2.5;
 
 		while (!glfwWindowShouldClose(window))
 		{
@@ -580,180 +480,54 @@ int main()
 			Camera->OnUpdate(window);
 
 #if MODEL
-			//Geometry Pass
-			glBindFramebuffer(GL_FRAMEBUFFER, gBufferFBO);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			GLCall(glDisable(GL_BLEND));
-			ssaoGeometryPassShader.Bind();
-			ssaoGeometryPassShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
-			ssaoGeometryPassShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
+			pbrShader.Bind();
+			pbrShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
+			pbrShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
 
-			glm::mat4 roomModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 3.3f, 0.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(10.0f, 7.5f, 10.0f));
+			pbrShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
 
-			ssaoGeometryPassShader.SetUniformMat4f("u_model", roomModel);
-			
-			ssaoGeometryPassShader.SetUniform1i("u_invertedNormals", 1);
-			renderer.Draw(va, ib, ssaoGeometryPassShader);
-			ssaoGeometryPassShader.SetUniform1i("u_invertedNormals", 0);
+			AlbedoMap.Bind();
+			NormalMap.Bind(1);
+			MetallicMap.Bind(2);
+			RoughnessMap.Bind(3);
+			AOMap.Bind(4);
 
-			glm::mat4 matModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.5f, 0.0f))
-				* glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
-
-			ssaoGeometryPassShader.SetUniformMat4f("u_model", matModel);
-			model.Draw(ssaoGeometryPassShader);
-
-			ssaoGeometryPassShader.UnBind();
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-			//SSAO Pass
-			glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
-			glClear(GL_COLOR_BUFFER_BIT);
-			ssaoShader.Bind();
-			for (int i = 0; i < 64; i++)
+			for (int row = 0; row < nrRows; row++)
 			{
-				ssaoShader.SetUniformVec3f("u_samples[" + std::to_string(i) + "]", ssaoKernel[i]);
+				for (int col = 0; col < nrColumns; col++)
+				{
+					glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(
+						(col - (nrColumns * 0.5f))* spacing,
+						(row - (nrRows * 0.5f))* spacing,
+						0.0f
+					));
+
+					pbrShader.SetUniformMat4f("u_model", model);
+					renderer.Draw(sphereVAO, sphereIBO, pbrShader);
+				}
 			}
-			ssaoShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
-			
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, gPosition);
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, gNormal);
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, noiseTexture);
 
-			quadVAO.Bind();
-			quadIBO.Bind();
-			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-			
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			//Render Lights
+			for (int i = 0; i < sizeof(lightPositions) / sizeof(lightPositions[0]); i++)
+			{
+				glm::vec3 newPos = lightPositions[i] + glm::vec3(sin(glfwGetTime() * 5.0) * 5.0, 0.0, 0.0);
+				newPos = lightPositions[i];
 
-			//blur
-			glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
-			glClear(GL_COLOR_BUFFER_BIT);
-			ssaoBlurPassShader.Bind();
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
+				pbrShader.SetUniformVec3f("u_lightPositions[" + std::to_string(i) + "]", newPos);
+				pbrShader.SetUniformVec3f("u_lightColors[" + std::to_string(i) + "]", lightColors[i]);
 
-			quadVAO.Bind();
-			quadIBO.Bind();
-			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+				glm::mat4 lightModel = glm::translate(glm::mat4(1.0f), newPos)
+					* glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-			//Lighting Pass
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			ssaoLightingPassShader.Bind();
-			ssaoLightingPassShader.SetUniformVec3f("u_light.Position", lightPos);
-			ssaoLightingPassShader.SetUniformVec3f("u_light.Color", lightColor);
-			// update attenuation parameters and calculate radius
-			const float linear = 0.09f;
-			const float quadratic = 0.032f;
-			ssaoLightingPassShader.SetUniform1f("u_light.Linear", linear);
-			ssaoLightingPassShader.SetUniform1f("u_light.Quadratic", quadratic);
-		
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, gPosition);
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, gNormal);
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, gAlbedo);
-			glActiveTexture(GL_TEXTURE3);
-			glBindTexture(GL_TEXTURE_2D, ssaoBlurColorBuffer);
-
-			quadVAO.Bind();
-			quadIBO.Bind();
-			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-			GLCall(glEnable(GL_BLEND));  
-
-			//glBindFramebuffer(GL_READ_FRAMEBUFFER, gBufferFBO);
-			//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-			//
-			//glBlitFramebuffer(0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-			//glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-			//render lightCube
-
-			/*lightSrcShader.Bind();
-			lightSrcShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
-			lightSrcShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
-			glm::mat4 lightCube = glm::translate(glm::mat4(1.0f), glm::vec3(lightPos))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(0.25f));
-
-			lightSrcShader.SetUniformMat4f("u_model", lightCube);
-			lightSrcShader.SetUniformVec3f("u_lightColor", lightColor);
-			renderer.Draw(va, ib, lightSrcShader);
-
-			lightSrcShader.UnBind();
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
-
+				pbrShader.SetUniformMat4f("u_model", lightModel);
+				renderer.Draw(sphereVAO, sphereIBO, pbrShader);
+			}
 
 #endif
 
 #if 0
-			glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-			bloomShader.Bind();
-			bloomShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
-			bloomShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
-
-			woodTexture.Bind(0);
-
-			for (int i = 0; i < lightPositions.size(); i++)
-			{
-				bloomShader.SetUniformVec3f("u_lights[" + std::to_string(i) + "].position", lightPositions[i]);
-				bloomShader.SetUniformVec3f("u_lights[" + std::to_string(i) + "].color", lightColors[i]);
-			}
-
-			//bloomShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
-
-			glm::mat4 floorCube = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(12.5f, 0.5f, 12.5f));
-
-			bloomShader.SetUniformMat4f("u_model", floorCube);
-			renderer.Draw(va, ib, bloomShader);
-
-			woodTexture.UnBind();
-
-			diffuseMap.Bind();
-
-			glm::mat4 cube1 = glm::translate(glm::mat4(), glm::vec3(0.0f, 1.5f, 0.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
-			bloomShader.SetUniformMat4f("u_model", cube1);
-			renderer.Draw(va, ib, bloomShader);
-
-			glm::mat4 cube2 = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 1.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
-			bloomShader.SetUniformMat4f("u_model", cube2);
-			renderer.Draw(va, ib, bloomShader);
-
-			glm::mat4 cube3 = glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, 0.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
-			bloomShader.SetUniformMat4f("u_model", cube3);
-			renderer.Draw(va, ib, bloomShader);
-
-			glm::mat4 cube4 = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, -1.0f, 2.0f))
-				* glm::rotate(glm::mat4(1.0f), glm::radians(60.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
-			bloomShader.SetUniformMat4f("u_model", cube4);
-			renderer.Draw(va, ib, bloomShader);
-
-			glm::mat4 cube5 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.5f, 0.0f))
-				* glm::rotate(glm::mat4(1.0f), glm::radians(23.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(1.25f));
-			bloomShader.SetUniformMat4f("u_model", cube5);
-			renderer.Draw(va, ib, bloomShader);
-
-			glm::mat4 cube6 = glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, 1.0f, -3.0f))
-				* glm::rotate(glm::mat4(1.0f), glm::radians(124.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
-			bloomShader.SetUniformMat4f("u_model", cube6);
-			renderer.Draw(va, ib, bloomShader);
-
-
+			
 			//render lightCube
-
 			lightSrcShader.Bind();
 			lightSrcShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
 			lightSrcShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
@@ -766,44 +540,7 @@ int main()
 				lightSrcShader.SetUniformVec3f("u_lightColor", lightColors[i]);
 				renderer.Draw(va, ib, lightSrcShader);
 			}
-
 			lightSrcShader.UnBind();
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-			//blur with 2 pass gaussian blur
-			bool horizontal = true, first_iteration = true;
-			int amount = 10;
-			bloomBlurShader.Bind();
-			for (unsigned int i = 0; i < amount; i++)
-			{
-				glActiveTexture(GL_TEXTURE0);
-				glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]);
-				bloomBlurShader.SetUniform1i("u_horizontal", horizontal);
-				glBindTexture(GL_TEXTURE_2D, first_iteration ? colorBuffers[1] : pingPongColorBuffer[!horizontal]);
-
-				quadVAO.Bind();
-				quadIBO.Bind();
-				glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-				horizontal = !horizontal;
-				if (first_iteration)
-					first_iteration = false;
-			}
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-			//render to the quad with HDR
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			bloomFinalShader.Bind();
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, pingPongColorBuffer[!horizontal]);
-			bloomFinalShader.SetUniform1f("u_exposure", 1.3f);
-
-			quadVAO.Bind();
-			quadIBO.Bind();
-			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
 
 			/////////////////////
 #endif

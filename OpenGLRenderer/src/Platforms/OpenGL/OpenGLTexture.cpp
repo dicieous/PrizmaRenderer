@@ -14,8 +14,30 @@ Texture2D::Texture2D(const std::string& filePath)
 
 	if (m_LocalBuffer)
 	{
-		GLenum internalFormat = (m_BPP == 4) ? GL_RGBA : GL_RGB;
-		GLenum dataFormat = (m_BPP == 4) ? GL_RGBA : GL_RGB;
+		GLenum internalFormat = 0;
+		GLenum dataFormat = 0;
+
+		switch (m_BPP)
+		{
+		case 1:
+			internalFormat = GL_RED;
+			dataFormat = GL_RED;
+			break;
+
+		case 3:
+			internalFormat = GL_RGB;
+			dataFormat = GL_RGB;
+			break;
+
+		case 4:
+			internalFormat = GL_RGBA;
+			dataFormat = GL_RGBA;
+			break;
+
+		default:
+			internalFormat = GL_RGB;
+			dataFormat = GL_RGB;
+		}
 
 		GLCall(glGenTextures(1, &m_RendererID));
 		GLCall(glBindTexture(GL_TEXTURE_2D, m_RendererID));
@@ -38,7 +60,8 @@ Texture2D::Texture2D(const std::string& filePath)
 
 	GLCall(glBindTexture(GL_TEXTURE_2D, 0));
 
-	if (m_LocalBuffer) {
+	if (m_LocalBuffer)
+	{
 		stbi_image_free(m_LocalBuffer);
 	}
 }

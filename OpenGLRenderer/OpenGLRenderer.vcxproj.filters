@@ -531,6 +531,7 @@
     <None Include="res\Shaders\ssao.shader" />
     <None Include="res\Shaders\ssaoBlur.shader" />
     <None Include="res\Shaders\ssaoLighting.shader" />
+    <None Include="res\Shaders\pbr.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vendor\GLFW\include\GLFW\glfw3.h">
