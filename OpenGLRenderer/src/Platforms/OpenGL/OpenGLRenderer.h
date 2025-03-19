@@ -10,6 +10,7 @@ class OpenGLRenderer {
 public:
     void Clear();
     void Draw(const OpenGLVertexArray& va, const OpenGLIndexBuffer& ib, const OpenGLShader& shader) const;
+    void DrawTriangleStrip(const OpenGLVertexArray& va, const OpenGLIndexBuffer& ib, const OpenGLShader& shader) const;
 
 private: 
 };

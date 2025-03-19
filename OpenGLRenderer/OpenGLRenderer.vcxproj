@@ -121,6 +121,7 @@
     <None Include="res\Shaders\bloomOutput.shader" />
     <None Include="res\Shaders\deferredShading.shader" />
     <None Include="res\Shaders\DepthDebugQuad.shader" />
+    <None Include="res\Shaders\equirectangularToCubemap.shader" />
     <None Include="res\Shaders\FrameBufferScreen.shader" />
     <None Include="res\Shaders\gBuffer.shader" />
     <None Include="res\Shaders\GeometryShader.shader" />
@@ -128,6 +129,7 @@
     <None Include="res\Shaders\hdrLighting.shader" />
     <None Include="res\Shaders\Instance.shader" />
     <None Include="res\Shaders\InstancedAsteroid.shader" />
+    <None Include="res\Shaders\irradianceConvolution.shader" />
     <None Include="res\Shaders\LightCube.shader" />
     <None Include="res\Shaders\Lighting.shader" />
     <None Include="res\Shaders\Lighting_Maps.shader" />
@@ -138,6 +140,7 @@
     <None Include="res\Shaders\NormalMapping.shader" />
     <None Include="res\Shaders\ParallaxMapping.shader" />
     <None Include="res\Shaders\pbr.shader" />
+    <None Include="res\Shaders\pbrCubemap.shader" />
     <None Include="res\Shaders\PointShadowDepthShader.shader" />
     <None Include="res\Shaders\PointShadowMap.shader" />
     <None Include="res\Shaders\ShadowMap.shader" />

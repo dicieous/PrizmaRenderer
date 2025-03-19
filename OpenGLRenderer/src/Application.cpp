@@ -407,8 +407,141 @@ int main()
 		pbrShader.Bind();
 		pbrShader.SetUniformVec3f("u_albedo", glm::vec3(0.5f, 0.0f, 0.0f));
 		pbrShader.SetUniform1f("u_ao", 1.0f);
+		pbrShader.SetUniform1i("u_irradianceMap", 0);
+
+		OpenGLShader environmentCubeMapShader("res/Shaders/pbrCubemap.shader");
+		environmentCubeMapShader.Bind();
+		environmentCubeMapShader.SetUniform1i("u_environmentMap", 0);
 
 		OpenGLRenderer renderer;
+		
+		//SkyBox Stuff
+
+		uint32_t captureFBO, captureRBO;
+		glGenFramebuffers(1, &captureFBO);
+		glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+
+		glGenRenderbuffers(1, &captureRBO);
+		glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 1024, 1024);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, captureRBO);
+
+
+		stbi_set_flip_vertically_on_load(1);
+		int width, height, BPPComp;
+		float* hdrImageData = stbi_loadf("res/Textures/Skybox/warm_restaurant_night_2k.hdr", &width, &height, &BPPComp, 0);
+		uint32_t hdrTexture;
+
+		if (hdrImageData)
+		{
+			glGenTextures(1, &hdrTexture);
+			glBindTexture(GL_TEXTURE_2D, hdrTexture);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, hdrImageData);
+
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		}
+		else
+		{
+			std::cout << "Failed to load HDR image." << std::endl;
+		}
+
+		GLCall(glBindTexture(GL_TEXTURE_2D, 0));
+		if (hdrImageData)
+		{
+			stbi_image_free(hdrImageData);
+		}
+
+		//Generate background Cubemap
+		uint32_t envCubeMap;
+		glGenTextures(1, &envCubeMap);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, envCubeMap);
+
+		for (int i = 0; i < 6; i++)
+		{
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 1024, 1024, 0, GL_RGB, GL_FLOAT, nullptr);
+		}
+
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+		glm::mat4 captureViews[] =
+		{
+			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
+			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
+			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+		};
+
+		OpenGLShader equirectangularToCubemap("res/Shaders/equirectangularToCubemap.shader");
+		equirectangularToCubemap.Bind();
+		equirectangularToCubemap.SetUniformMat4f("u_projection", captureProjection);
+		equirectangularToCubemap.SetUniform1i("u_equirectangularMap", 0);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, hdrTexture);
+
+		glViewport(0, 0, 1024, 1024);
+		for (int i = 0; i < 6; i++)
+		{
+			equirectangularToCubemap.SetUniformMat4f("u_view", captureViews[i]);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubeMap, 0);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			renderer.Draw(va, ib, equirectangularToCubemap);
+		}
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		//Generate irradiance Cubemap
+
+		uint32_t irradianceMap;
+		glGenTextures(1, &irradianceMap);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
+
+		for (int i = 0; i < 6; i++)
+		{
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 64, 64, 0, GL_RGB, GL_FLOAT, nullptr);
+		}
+
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+		glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 64, 64);
+
+		OpenGLShader irradianceShader("res/Shaders/irradianceConvolution.shader");
+		irradianceShader.Bind();
+		irradianceShader.SetUniformMat4f("u_projection", captureProjection);
+		irradianceShader.SetUniform1i("u_equirectangularMap", 0);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, envCubeMap);
+
+		glViewport(0, 0, 64, 64);
+		glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+		for (int i = 0; i < 6; i++)
+		{
+			irradianceShader.SetUniformMat4f("u_view", captureViews[i]);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap, 0);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			renderer.Draw(va, ib, irradianceShader);
+		}
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		int scrWidth, scrHeight;
+		glfwGetFramebufferSize(window, &scrWidth, &scrHeight);
+		glViewport(0, 0, scrWidth, scrHeight);
 #endif
 		
 
@@ -474,6 +607,8 @@ int main()
 			pbrShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
 
 			pbrShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
 
 			for (int row = 0; row < nrRows; row++)
 			{
@@ -489,7 +624,7 @@ int main()
 					));
 
 					pbrShader.SetUniformMat4f("u_model", model);
-					renderer.Draw(sphereVAO, sphereIBO, pbrShader);
+					renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
 				}
 			}
 
@@ -506,8 +641,18 @@ int main()
 					* glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
 
 				pbrShader.SetUniformMat4f("u_model", lightModel);
-				renderer.Draw(sphereVAO, sphereIBO, pbrShader);
+				renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
 			}
+
+			//Render BackGround
+			glDepthFunc(GL_LEQUAL);
+			environmentCubeMapShader.Bind();
+			environmentCubeMapShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
+			environmentCubeMapShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, envCubeMap);
+			renderer.Draw(va, ib, environmentCubeMapShader);
+			glDepthFunc(GL_LESS);
 
 #endif
 

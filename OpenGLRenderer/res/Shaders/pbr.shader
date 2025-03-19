@@ -43,32 +43,23 @@ uniform vec3 u_viewPos;
 uniform vec3 u_lightPositions[4];
 uniform vec3 u_lightColors[4];
 
+
 uniform vec3 u_albedo;
 uniform float u_metallic;
 uniform float u_roughness;
 uniform float u_ao;
 
-// vec3 GetNormalFromMap()
-// {
-//     vec3 tangentNormal = texture(u_normalMap, fs_in.TexCoords).xyz * 2.0 - 1.0;
-
-//     vec3 Q1  = dFdx(fs_in.worldPos);
-//     vec3 Q2  = dFdy(fs_in.worldPos);
-//     vec2 st1 = dFdx(fs_in.TexCoords);
-//     vec2 st2 = dFdy(fs_in.TexCoords);
-
-//     vec3 N   = normalize(fs_in.Normal);
-//     vec3 T  = normalize(Q1*st2.t - Q2*st1.t);
-//     vec3 B  = -normalize(cross(N, T));
-//     mat3 TBN = mat3(T, B, N);
-
-//     return normalize(TBN * tangentNormal);
-// }
+uniform samplerCube u_irradianceMap;
 
 
 vec3 FresnelSchlick(float cosTheta, vec3 F0)
 {
 	return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 0.5);
+}
+
+vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
 float DistributionGGX(vec3 N, vec3 H, float roughness)
@@ -141,7 +132,12 @@ void main()
 		Lo += (kD * u_albedo / PI + specular) * radiance * NdotL;
 	}
 
-	vec3 ambient = vec3(0.03) * u_albedo * u_ao;
+	vec3 kS = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, u_roughness);
+	vec3 kD = 1.0 - kS;
+	kD *= 1.0 - u_metallic;
+	vec3 irradiance = texture(u_irradianceMap, N).rgb;
+	vec3 diffuse = irradiance * (u_albedo / PI);
+	vec3 ambient = (kD * diffuse) * u_ao;
 	vec3 color = ambient + Lo;
 
 	color = color / (color + vec3(1.0));

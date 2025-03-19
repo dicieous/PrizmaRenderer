@@ -532,6 +532,9 @@
     <None Include="res\Shaders\ssaoBlur.shader" />
     <None Include="res\Shaders\ssaoLighting.shader" />
     <None Include="res\Shaders\pbr.shader" />
+    <None Include="res\Shaders\equirectangularToCubemap.shader" />
+    <None Include="res\Shaders\pbrCubemap.shader" />
+    <None Include="res\Shaders\irradianceConvolution.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vendor\GLFW\include\GLFW\glfw3.h">
