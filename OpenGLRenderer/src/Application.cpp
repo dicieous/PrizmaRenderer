@@ -405,26 +405,8 @@ int main()
 
 		OpenGLShader pbrShader("res/Shaders/pbr.shader");
 		pbrShader.Bind();
-		pbrShader.SetUniform1i("u_albedoMap", 0);
-		pbrShader.SetUniform1i("u_normalMap", 1);
-		pbrShader.SetUniform1i("u_metallicMap", 2);
-		pbrShader.SetUniform1i("u_roughnessMap", 3);
-		pbrShader.SetUniform1i("u_aoMap", 4);
-
-		Texture2D AlbedoMap("res/Textures/rustedTex/rustediron2_basecolor.png");
-		AlbedoMap.Bind();
-
-		Texture2D NormalMap("res/Textures/rustedTex/rustediron2_normal.png");
-		NormalMap.Bind(1);
-
-		Texture2D MetallicMap("res/Textures/rustedTex/rustediron2_metallic.png");
-		MetallicMap.Bind(2);
-
-		Texture2D RoughnessMap("res/Textures/rustedTex/rustediron2_roughness.png");
-		RoughnessMap.Bind(3);
-
-		Texture2D AOMap("res/Textures/rustedTex/rustediron2_ao.png");
-		AOMap.Bind(4);
+		pbrShader.SetUniformVec3f("u_albedo", glm::vec3(0.5f, 0.0f, 0.0f));
+		pbrShader.SetUniform1f("u_ao", 1.0f);
 
 		OpenGLRenderer renderer;
 #endif
@@ -456,10 +438,17 @@ int main()
 
 
 		glm::vec3 lightPositions[] = {
-			 glm::vec3(0.0f, 0.0f, 10.0f),
+			glm::vec3(-10.0f,  10.0f, 10.0f),
+			glm::vec3(10.0f,  10.0f, 10.0f),
+			glm::vec3(-10.0f, -10.0f, 10.0f),
+			glm::vec3(10.0f, -10.0f, 10.0f),
 		};
+
 		glm::vec3 lightColors[] = {
-			glm::vec3(150.0f, 150.0f, 150.0f),
+			glm::vec3(300.0f, 300.0f, 300.0f),
+			glm::vec3(300.0f, 300.0f, 300.0f),
+			glm::vec3(300.0f, 300.0f, 300.0f),
+			glm::vec3(300.0f, 300.0f, 300.0f)
 		};
 
 		int nrRows = 7;
@@ -486,16 +475,13 @@ int main()
 
 			pbrShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
 
-			AlbedoMap.Bind();
-			NormalMap.Bind(1);
-			MetallicMap.Bind(2);
-			RoughnessMap.Bind(3);
-			AOMap.Bind(4);
-
 			for (int row = 0; row < nrRows; row++)
 			{
+				pbrShader.SetUniform1f("u_metallic", (float)row / (float)nrRows);
 				for (int col = 0; col < nrColumns; col++)
 				{
+					pbrShader.SetUniform1f("u_roughness", glm::clamp((float)col / (float)nrColumns, 0.05f, 1.0f));
+
 					glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(
 						(col - (nrColumns * 0.5f))* spacing,
 						(row - (nrRows * 0.5f))* spacing,
