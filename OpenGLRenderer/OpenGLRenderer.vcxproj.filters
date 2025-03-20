@@ -535,6 +535,8 @@
     <None Include="res\Shaders\equirectangularToCubemap.shader" />
     <None Include="res\Shaders\pbrCubemap.shader" />
     <None Include="res\Shaders\irradianceConvolution.shader" />
+    <None Include="res\Shaders\pbrPreFilter.shader" />
+    <None Include="res\Shaders\brdf.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vendor\GLFW\include\GLFW\glfw3.h">

@@ -119,6 +119,7 @@
     <None Include="res\Shaders\bloomLight.shader" />
     <None Include="res\Shaders\bloom.shader" />
     <None Include="res\Shaders\bloomOutput.shader" />
+    <None Include="res\Shaders\brdf.shader" />
     <None Include="res\Shaders\deferredShading.shader" />
     <None Include="res\Shaders\DepthDebugQuad.shader" />
     <None Include="res\Shaders\equirectangularToCubemap.shader" />
@@ -141,6 +142,7 @@
     <None Include="res\Shaders\ParallaxMapping.shader" />
     <None Include="res\Shaders\pbr.shader" />
     <None Include="res\Shaders\pbrCubemap.shader" />
+    <None Include="res\Shaders\pbrPreFilter.shader" />
     <None Include="res\Shaders\PointShadowDepthShader.shader" />
     <None Include="res\Shaders\PointShadowMap.shader" />
     <None Include="res\Shaders\ShadowMap.shader" />

@@ -154,6 +154,8 @@ int main()
 	GLCall(glEnable(GL_BLEND));
 	GLCall(glEnable(GL_MULTISAMPLE));
 	GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+	GLCall(glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS));
+	GLCall(glDepthFunc(GL_LEQUAL));
 	//GLCall(glEnable(GL_PROGRAM_POINT_SIZE));
 
 	{
@@ -408,10 +410,21 @@ int main()
 		pbrShader.SetUniformVec3f("u_albedo", glm::vec3(0.5f, 0.0f, 0.0f));
 		pbrShader.SetUniform1f("u_ao", 1.0f);
 		pbrShader.SetUniform1i("u_irradianceMap", 0);
+		pbrShader.SetUniform1i("u_prefilterMap", 1);
+		pbrShader.SetUniform1i("u_brdfLUT", 2);
 
 		OpenGLShader environmentCubeMapShader("res/Shaders/pbrCubemap.shader");
 		environmentCubeMapShader.Bind();
 		environmentCubeMapShader.SetUniform1i("u_environmentMap", 0);
+
+		OpenGLShader equirectangularToCubemap("res/Shaders/equirectangularToCubemap.shader");
+
+		OpenGLShader irradianceShader("res/Shaders/irradianceConvolution.shader");
+
+		OpenGLShader preFilterShader("res/Shaders/pbrPreFilter.shader");
+		
+		OpenGLShader brdfShader("res/Shaders/brdf.shader");
+
 
 		OpenGLRenderer renderer;
 		
@@ -429,7 +442,7 @@ int main()
 
 		stbi_set_flip_vertically_on_load(1);
 		int width, height, BPPComp;
-		float* hdrImageData = stbi_loadf("res/Textures/Skybox/warm_restaurant_night_2k.hdr", &width, &height, &BPPComp, 0);
+		float* hdrImageData = stbi_loadf("res/Textures/Skybox/warmRestaurant.hdr", &width, &height, &BPPComp, 0);
 		uint32_t hdrTexture;
 
 		if (hdrImageData)
@@ -467,7 +480,7 @@ int main()
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 		glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
@@ -481,7 +494,7 @@ int main()
 			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
 		};
 
-		OpenGLShader equirectangularToCubemap("res/Shaders/equirectangularToCubemap.shader");
+		
 		equirectangularToCubemap.Bind();
 		equirectangularToCubemap.SetUniformMat4f("u_projection", captureProjection);
 		equirectangularToCubemap.SetUniform1i("u_equirectangularMap", 0);
@@ -499,8 +512,11 @@ int main()
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-		//Generate irradiance Cubemap
+		//To remove visual dots
+		glBindTexture(GL_TEXTURE_CUBE_MAP, envCubeMap);
+		glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 
+		//Generate irradiance Cubemap
 		uint32_t irradianceMap;
 		glGenTextures(1, &irradianceMap);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
@@ -520,7 +536,6 @@ int main()
 		glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 64, 64);
 
-		OpenGLShader irradianceShader("res/Shaders/irradianceConvolution.shader");
 		irradianceShader.Bind();
 		irradianceShader.SetUniformMat4f("u_projection", captureProjection);
 		irradianceShader.SetUniform1i("u_equirectangularMap", 0);
@@ -538,6 +553,81 @@ int main()
 			renderer.Draw(va, ib, irradianceShader);
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		//Generate PreFilter Map
+		uint32_t prefilterMap;
+		glGenTextures(1, &prefilterMap);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
+
+		for (int i = 0; i < 6; i++)
+		{
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 256, 256, 0, GL_RGB, GL_FLOAT, nullptr);
+		}
+
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+		preFilterShader.Bind();
+		preFilterShader.SetUniformMat4f("u_projection", captureProjection);
+		preFilterShader.SetUniform1i("u_environmentMap", 0);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, envCubeMap);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+		uint32_t maxMipLevels = 5;
+
+		for (int mip = 0; mip < maxMipLevels; mip++)
+		{
+			uint32_t mipWidth  = 256 * glm::pow(0.5, mip);
+			uint32_t mipHeight = 256 * glm::pow(0.5, mip);
+
+			glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
+			glViewport(0, 0, mipWidth, mipHeight);
+
+			float roughness = (float)mip / (float)(maxMipLevels - 1);
+			preFilterShader.SetUniform1f("u_roughness", roughness);
+
+			for (int i = 0; i < 6; i++)
+			{
+				preFilterShader.SetUniformMat4f("u_view", captureViews[i]);
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap, mip);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+				renderer.Draw(va, ib, preFilterShader);
+			}
+		}
+
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+		//generate 2D LUT from BRDF equation
+		uint32_t brdfLUTTexture;
+		glGenTextures(1, &brdfLUTTexture);
+		glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 1024, 1024, 0, GL_RG, GL_FLOAT, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+		glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 1024, 1024);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUTTexture, 0);
+		glViewport(0, 0, 1024, 1024);
+
+		brdfShader.Bind();
+		renderer.Clear();
+
+		renderer.Draw(quadVAO, quadIBO, brdfShader);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 
 		int scrWidth, scrHeight;
 		glfwGetFramebufferSize(window, &scrWidth, &scrHeight);
@@ -609,6 +699,10 @@ int main()
 			pbrShader.SetUniformVec3f("u_viewPos", Camera->GetCameraPosition());
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
 
 			for (int row = 0; row < nrRows; row++)
 			{
@@ -645,14 +739,14 @@ int main()
 			}
 
 			//Render BackGround
-			glDepthFunc(GL_LEQUAL);
+			//glDepthFunc(GL_LEQUAL);
 			environmentCubeMapShader.Bind();
 			environmentCubeMapShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
 			environmentCubeMapShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_CUBE_MAP, envCubeMap);
 			renderer.Draw(va, ib, environmentCubeMapShader);
-			glDepthFunc(GL_LESS);
+			//glDepthFunc(GL_LESS);
 
 #endif
 
