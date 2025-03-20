@@ -43,16 +43,34 @@ uniform vec3 u_viewPos;
 uniform vec3 u_lightPositions[4];
 uniform vec3 u_lightColors[4];
 
-
-uniform vec3 u_albedo;
-uniform float u_metallic;
-uniform float u_roughness;
-uniform float u_ao;
+uniform sampler2D u_albedoMap;
+uniform sampler2D u_normalMap;
+uniform sampler2D u_metallicMap;
+uniform sampler2D u_roughnessMap;
+uniform sampler2D u_aoMap;
 
 uniform samplerCube u_irradianceMap;
 uniform samplerCube u_prefilterMap;
 uniform sampler2D u_brdfLUT;
 
+vec3 GetNormalFromMap()
+{
+     vec3 tangentNormal = texture(u_normalMap, fs_in.TexCoords).xyz * 2.0 - 1.0;
+ 
+     vec3 Q1  = dFdx(fs_in.worldPos);
+     vec3 Q2  = dFdy(fs_in.worldPos);
+     vec2 st1 = dFdx(fs_in.TexCoords);
+     vec2 st2 = dFdy(fs_in.TexCoords);
+ 
+     vec3 N   = normalize(fs_in.Normal);
+     vec3 T  = normalize(Q1*st2.t - Q2*st1.t);
+     vec3 B  = -normalize(cross(N, T));
+     mat3 TBN = mat3(T, B, N);
+ 
+     return normalize(TBN * tangentNormal);
+}
+
+// ----------------------------------------------------------------------------
 
 vec3 FresnelSchlick(float cosTheta, vec3 F0)
 {
@@ -112,12 +130,17 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 
 void main()
 {
-	vec3 N = normalize(fs_in.Normal); //NormalDir
+	vec3 albedo = pow(texture(u_albedoMap, fs_in.TexCoords).rgb, vec3(2.2));
+ 	float metallic = texture(u_metallicMap, fs_in.TexCoords).r;
+ 	float roughness = texture(u_roughnessMap, fs_in.TexCoords).r;
+ 	float ao = texture(u_aoMap, fs_in.TexCoords).r;
+
+	vec3 N = GetNormalFromMap(); //NormalDir
 	vec3 V = normalize(u_viewPos - fs_in.worldPos); //ViewDir
 	vec3 R = reflect(-V, N); //ReflectDir
 
 	vec3 F0 = vec3(0.04);
-	F0 = mix(F0, u_albedo, u_metallic);
+	F0 = mix(F0, albedo, metallic);
 
 	vec3 Lo = vec3(0.0);
 	for(int i = 0; i < 4; i++)
@@ -130,8 +153,8 @@ void main()
 		vec3 radiance = u_lightColors[i] * attenuation;
 
 		vec3 F = FresnelSchlick(clamp(max(dot(H, V), 0.0), 0.0, 1.0), F0);
-		float NDF = DistributionGGX(N, H, u_roughness);
-		float G = GeometrySmith(N, V, L, u_roughness);
+		float NDF = DistributionGGX(N, H, roughness);
+		float G = GeometrySmith(N, V, L, roughness);
 
 		vec3 numerator = NDF * G * F;
 		float denominator = 4.0 * max(0.0, dot(N, V)) * max(0.0, dot(N, L)) + 0.0001;
@@ -140,27 +163,27 @@ void main()
 		vec3 kS = F;
 		vec3 kD = vec3(1.0) - kS;
 
-		kD *= 1.0 - u_metallic;
+		kD *= 1.0 - metallic;
 
 		float NdotL = max(dot(N, L), 0.0);
-		Lo += (kD * u_albedo / PI + specular) * radiance * NdotL;
+		Lo += (kD * albedo / PI + specular) * radiance * NdotL;
 	}
 
-	vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, u_roughness);
+	vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
 
 	vec3 kS = F;
 	vec3 kD = 1.0 - kS;
-	kD *= 1.0 - u_metallic;
+	kD *= 1.0 - metallic;
 
 	vec3 irradiance = texture(u_irradianceMap, N).rgb;
-	vec3 diffuse = irradiance * u_albedo;
+	vec3 diffuse = irradiance * albedo;
 
 	const float MAX_REFLECTION_LOD = 4.0;
-	vec3 prefilteredColor = textureLod(u_prefilterMap, R, u_roughness * MAX_REFLECTION_LOD).rgb;
-	vec2 envBRDF = texture(u_brdfLUT, vec2(max(dot(N, V), 0.0), u_roughness)).rg;
+	vec3 prefilteredColor = textureLod(u_prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+	vec2 envBRDF = texture(u_brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
 	vec3 specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
 
-	vec3 ambient = (kD * diffuse + specular) * u_ao;
+	vec3 ambient = (kD * diffuse + specular) * ao;
 	vec3 color = ambient + Lo;
 
 	color = color / (color + vec3(1.0));

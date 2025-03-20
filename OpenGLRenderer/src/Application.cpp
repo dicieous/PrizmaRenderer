@@ -200,7 +200,7 @@ void renderQuad(OpenGLShader& shader, bool striped = false)
 		renderer.Draw(quadVAO, quadIBO, shader);
 }
 
-void LoadEnvironment(const std::string& hdrPath ,uint32_t &envCubeMap, uint32_t &brdfLUTTexture, uint32_t &prefilterMap, uint32_t &irradianceMap)
+void LoadEnvironment(const std::string& hdrPath, uint32_t& envCubeMap, uint32_t& brdfLUTTexture, uint32_t& prefilterMap, uint32_t& irradianceMap)
 {
 	OpenGLRenderer renderer;
 
@@ -433,7 +433,7 @@ void ChangeEnvironmentInput(GLFWwindow* window, uint32_t& envCubeMap, uint32_t& 
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS && currentTime - lastPressTime > 2.0)
 	{
 		lastPressTime = currentTime;
-		if (currentEnvIndex > 0) 
+		if (currentEnvIndex > 0)
 			currentEnvIndex--;
 		else
 			return;
@@ -618,13 +618,69 @@ int main()
 
 		sphereVAO.AddBuffer(sphereVBO, sphereLayout);
 
+		//LoadTextures
+		//BrickWall
+		Texture2D brickWallAlbedo("res/Textures/brickWall/alley-brick-wall_albedo.png");
+		Texture2D brickWallNormal("res/Textures/brickWall/alley-brick-wall_normal-ogl.png");
+		Texture2D brickWallMetallic("res/Textures/brickWall/alley-brick-wall_metallic.png");
+		Texture2D brickWallRoughness("res/Textures/brickWall/alley-brick-wall_roughness.png");
+		Texture2D brickWallAO("res/Textures/brickWall/alley-brick-wall_ao.png");
+
+		//CopperScuffed
+		Texture2D CopperScuffedAlbedo("res/Textures/CopperScuffed/Copper-scuffed_basecolor-boosted.png");
+		Texture2D CopperScuffedNormal("res/Textures/CopperScuffed/Copper-scuffed_normal.png");
+		Texture2D CopperScuffedMetallic("res/Textures/CopperScuffed/Copper-scuffed_metallic.png");
+		Texture2D CopperScuffedRoughness("res/Textures/CopperScuffed/Copper-scuffed_roughness.png");
+		Texture2D CopperScuffedAO("res/Textures/CopperScuffed/Copper-scuffed_ao.png");
+
+		//darkTiles
+		Texture2D darkTilesAlbedo("res/Textures/darkTiles/dark-grey-tiles_albedo.png");
+		Texture2D darkTilesNormal("res/Textures/darkTiles/dark-grey-tiles_normal-ogl.png");
+		Texture2D darkTilesMetallic("res/Textures/darkTiles/dark-grey-tiles_metallic.png");
+		Texture2D darkTilesRoughness("res/Textures/darkTiles/dark-grey-tiles_roughness.png");
+		Texture2D darkTilesAO("res/Textures/darkTiles/dark-grey-tiles_ao.png");
+
+		//darkWood
+		Texture2D darkWoodAlbedo("res/Textures/darkWood/dark-wood-stain_albedo.png");
+		Texture2D darkWoodNormal("res/Textures/darkWood/dark-wood-stain_normal-ogl.png");
+		Texture2D darkWoodMetallic("res/Textures/darkWood/dark-wood-stain_metallic.png");
+		Texture2D darkWoodRoughness("res/Textures/darkWood/dark-wood-stain_roughness.png");
+		Texture2D darkWoodAO("res/Textures/darkWood/dark-wood-stain_ao.png");
+
+		//hammeredGold
+		Texture2D hammeredGoldAlbedo("res/Textures/hammeredGold/hammered-gold_albedo.png");
+		Texture2D hammeredGoldNormal("res/Textures/hammeredGold/hammered-gold_normal-ogl.png");
+		Texture2D hammeredGoldMetallic("res/Textures/hammeredGold/hammered-gold_metallic.png");
+		Texture2D hammeredGoldRoughness("res/Textures/hammeredGold/hammered-gold_roughness.png");
+		Texture2D hammeredGoldAO("res/Textures/hammeredGold/hammered-gold_ao.png");
+
+		//rustedTex
+		Texture2D rustedTexAlbedo("res/Textures/rustedTex/rustediron2_basecolor.png");
+		Texture2D rustedTexNormal("res/Textures/rustedTex/rustediron2_normal.png");
+		Texture2D rustedTexMetallic("res/Textures/rustedTex/rustediron2_metallic.png");
+		Texture2D rustedTexRoughness("res/Textures/rustedTex/rustediron2_roughness.png");
+		Texture2D rustedTexAO("res/Textures/rustedTex/rustediron2_ao.png");
+
+		//WhispyGrass
+		Texture2D WhispyGrassAlbedo("res/Textures/WhispyGrass/wispy-grass-meadow_albedo.png");
+		Texture2D WhispyGrassNormal("res/Textures/WhispyGrass/wispy-grass-meadow_normal-ogl.png");
+		Texture2D WhispyGrassMetallic("res/Textures/WhispyGrass/wispy-grass-meadow_metallic.png");
+		Texture2D WhispyGrassRoughness("res/Textures/WhispyGrass/wispy-grass-meadow_roughness.png");
+		Texture2D WhispyGrassAO("res/Textures/WhispyGrass/wispy-grass-meadow_ao.png");
+
+
+
 		OpenGLShader pbrShader("res/Shaders/pbr.shader");
 		pbrShader.Bind();
-		pbrShader.SetUniformVec3f("u_albedo", glm::vec3(0.5f, 0.0f, 0.0f));
-		pbrShader.SetUniform1f("u_ao", 1.0f);
 		pbrShader.SetUniform1i("u_irradianceMap", 0);
 		pbrShader.SetUniform1i("u_prefilterMap", 1);
 		pbrShader.SetUniform1i("u_brdfLUT", 2);
+
+		pbrShader.SetUniform1i("u_albedoMap", 3);
+		pbrShader.SetUniform1i("u_normalMap", 4);
+		pbrShader.SetUniform1i("u_metallicMap", 5);
+		pbrShader.SetUniform1i("u_roughnessMap", 6);
+		pbrShader.SetUniform1i("u_aoMap", 7);
 
 		OpenGLShader environmentCubeMapShader("res/Shaders/pbrCubemap.shader");
 		environmentCubeMapShader.Bind();
@@ -632,7 +688,7 @@ int main()
 
 
 		OpenGLRenderer renderer;
-		
+
 		//SkyBox Stuff
 
 		uint32_t envCubeMap, brdfLUTTexture, prefilterMap, irradianceMap;
@@ -643,7 +699,7 @@ int main()
 		int scrWidth, scrHeight;
 		glfwGetFramebufferSize(window, &scrWidth, &scrHeight);
 		glViewport(0, 0, scrWidth, scrHeight);
-		
+
 
 #if MODEL
 
@@ -686,7 +742,7 @@ int main()
 
 		int nrRows = 7;
 		int nrColumns = 7;
-		float spacing = 2.5;
+		float spacing = 5;
 
 		while (!glfwWindowShouldClose(window))
 		{
@@ -718,26 +774,92 @@ int main()
 			glActiveTexture(GL_TEXTURE2);
 			glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
 
-			for (int row = 0; row < nrRows; row++)
-			{
-				pbrShader.SetUniform1f("u_metallic", (float)row / (float)nrRows);
-				for (int col = 0; col < nrColumns; col++)
-				{
-					pbrShader.SetUniform1f("u_roughness", glm::clamp((float)col / (float)nrColumns, 0.05f, 1.0f));
+			//brickwall
+			brickWallAlbedo.Bind(3);
+			brickWallNormal.Bind(4);
+			brickWallMetallic.Bind(5);
+			brickWallRoughness.Bind(6);
+			brickWallAO.Bind(7);
+			glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(-15.0f, 0.0f, 2.0f))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
 
-					glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(
-						(col - (nrColumns * 0.5f))* spacing,
-						(row - (nrRows * 0.5f))* spacing,
-						0.0f
-					));
+			pbrShader.SetUniformMat4f("u_model", model);
+			renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
 
-					pbrShader.SetUniformMat4f("u_model", model);
-					renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
-				}
-			}
+			//copperScuffed
+			CopperScuffedAlbedo.Bind(3);
+			CopperScuffedNormal.Bind(4);
+			CopperScuffedMetallic.Bind(5);
+			CopperScuffedRoughness.Bind(6);
+			CopperScuffedAO.Bind(7);
+			model = glm::translate(glm::mat4(1.0f), glm::vec3(-10.0f, 0.0f, 2.0f))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
+
+			pbrShader.SetUniformMat4f("u_model", model);
+			renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
+
+			//darkTiles
+			darkTilesAlbedo.Bind(3);
+			darkTilesNormal.Bind(4);
+			darkTilesMetallic.Bind(5);
+			darkTilesRoughness.Bind(6);
+			darkTilesAO.Bind(7);
+			model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, 0.0f, 2.0f))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
+
+			pbrShader.SetUniformMat4f("u_model", model);
+			renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
+
+			//darkWood
+			darkWoodAlbedo.Bind(3);
+			darkWoodNormal.Bind(4);
+			darkWoodMetallic.Bind(5);
+			darkWoodRoughness.Bind(6);
+			darkWoodAO.Bind(7);
+			model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 2.0f))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
+
+			pbrShader.SetUniformMat4f("u_model", model);
+			renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
+
+			//hammeredGold
+			hammeredGoldAlbedo.Bind(3);
+			hammeredGoldNormal.Bind(4);
+			hammeredGoldMetallic.Bind(5);
+			hammeredGoldRoughness.Bind(6);
+			hammeredGoldAO.Bind(7);
+			model = glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 0.0f, 2.0f))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
+
+			pbrShader.SetUniformMat4f("u_model", model);
+			renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
+
+			//rustedTex
+			rustedTexAlbedo.Bind(3);
+			rustedTexNormal.Bind(4);
+			rustedTexMetallic.Bind(5);
+			rustedTexRoughness.Bind(6);
+			rustedTexAO.Bind(7);
+			model = glm::translate(glm::mat4(1.0f), glm::vec3(10.0f, 0.0f, 2.0f))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
+
+			pbrShader.SetUniformMat4f("u_model", model);
+			renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
+
+			//WhispyGrass
+			WhispyGrassAlbedo.Bind(3);
+			WhispyGrassNormal.Bind(4);
+			WhispyGrassMetallic.Bind(5);
+			WhispyGrassRoughness.Bind(6);
+			WhispyGrassAO.Bind(7);
+			model = glm::translate(glm::mat4(1.0f), glm::vec3(15.0f, 0.0f, 2.0f))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
+
+			pbrShader.SetUniformMat4f("u_model", model);
+			renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
 
 			//Render Lights
-			for (int i = 0; i < sizeof(lightPositions) / sizeof(lightPositions[0]); i++)
+			/*for (int i = 0; i < sizeof(lightPositions) / sizeof(lightPositions[0]); i++)
 			{
 				glm::vec3 newPos = lightPositions[i] + glm::vec3(sin(glfwGetTime() * 5.0) * 5.0, 0.0, 0.0);
 				newPos = lightPositions[i];
@@ -750,7 +872,7 @@ int main()
 
 				pbrShader.SetUniformMat4f("u_model", lightModel);
 				renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
-			}
+			}*/
 
 			//Render BackGround
 			//glDepthFunc(GL_LEQUAL);
@@ -766,7 +888,7 @@ int main()
 #endif
 
 #if 0
-			
+
 			//render lightCube
 			lightSrcShader.Bind();
 			lightSrcShader.SetUniformMat4f("u_projection", Camera->GetProjectionMatrix());
@@ -800,13 +922,13 @@ int main()
 			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 			glfwSwapBuffers(window);
-			}
 		}
+	}
 
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 
 	glfwTerminate();
-	}
+}
 
