@@ -18,6 +18,6 @@ public:
 	uint32_t GetRendererID() const { return m_RendererID; }
 
 private:
-	uint32_t m_RendererID;
+	uint32_t m_RendererID = 0;
 	unsigned int m_AttributeIndex = 0;
 };

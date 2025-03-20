@@ -73,6 +73,386 @@ float lerp(float a, float b, float f)
 	return a + f * (b - a);
 }
 
+void renderCube(OpenGLShader& shader, bool striped = false)
+{
+	//Cube stuff
+	float vertices[] = {
+		// Positions         //Normals          //Textures
+		// Front face
+		-0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,// Bottom-left
+		 0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,// Bottom-right
+		 0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,// Top-right
+		-0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,// Top-left
+
+		// Back face
+		-0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,// Bottom-left
+		 0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,// Bottom-right
+		 0.5f,  0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,// Top-right
+		-0.5f,  0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,// Top-left
+
+		// Left face
+		-0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,// Bottom-left
+		-0.5f, -0.5f,  0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,// Bottom-right
+		-0.5f,  0.5f,  0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,// Top-right
+		-0.5f,  0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,// Top-left
+
+		// Right face
+		 0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,// Bottom-left
+		 0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,// Bottom-right
+		 0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,// Top-right
+		 0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,// Top-left
+
+		 // Top face
+		 -0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,// Bottom-left
+		  0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,// Bottom-right
+		  0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,// Top-right
+		 -0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,// Top-left
+
+		 // Bottom face
+		 -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,// Bottom-left
+		  0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,// Bottom-right
+		  0.5f, -0.5f,  0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f,// Top-right
+		 -0.5f, -0.5f,  0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,// Top-left
+	};
+
+	unsigned int indices[] = {
+		// Front face
+		0, 2, 1,
+		2, 0, 3,
+
+		// Back face
+		4, 6, 5,
+		6, 4, 7,
+
+		// Left face
+		8, 10, 9,
+		10, 8, 11,
+
+		// Right face
+		12, 14, 13,
+		14, 12, 15,
+
+		// Top face
+		16, 18, 17,
+		18, 16, 19,
+
+		// Bottom face
+		20, 22, 21,
+		22, 20, 23
+	};
+
+	//Assign VertexArrayObject
+	OpenGLVertexArray va;
+
+	OpenGLVertexArray lightVA;
+
+	//Assign the Vertex Buffer on the GPU
+	OpenGLVertexBuffer vb(sizeof(vertices), vertices);
+
+	//Assign the Index Buffer on the GPU
+	OpenGLIndexBuffer ib(sizeof(indices) / sizeof(indices[0]), indices);
+
+	//Add Vertex Layouts
+	VertexBufferLayout layout;
+	layout.Push<float>(3); //Position Attributes
+	layout.Push<float>(3); //Normal Attributes
+	layout.Push<float>(2); //Texture Attributes
+	va.AddBuffer(vb, layout);
+
+	OpenGLRenderer renderer;
+	if (striped)
+		renderer.DrawTriangleStrip(va, ib, shader);
+	else
+		renderer.Draw(va, ib, shader);
+}
+
+void renderQuad(OpenGLShader& shader, bool striped = false)
+{
+	//Quad
+	float quadVertices[] = {
+		// positions        // texture Coords
+		-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+		-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+		 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+		 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+	};
+
+	uint32_t quadIndices[] = {
+		0, 1, 2, 3
+	};
+
+	OpenGLVertexArray quadVAO;
+	OpenGLVertexBuffer quadVBO(sizeof(quadVertices), quadVertices);
+	OpenGLIndexBuffer quadIBO(sizeof(quadIndices) / sizeof(quadIndices[0]), quadIndices);
+
+	VertexBufferLayout quadLayout;
+	quadLayout.Push<float>(3);
+	quadLayout.Push<float>(2);
+
+	quadVAO.Bind();
+	quadVAO.AddBuffer(quadVBO, quadLayout);
+
+
+	OpenGLRenderer renderer;
+	if (striped)
+		renderer.DrawTriangleStrip(quadVAO, quadIBO, shader);
+	else
+		renderer.Draw(quadVAO, quadIBO, shader);
+}
+
+void LoadEnvironment(const std::string& hdrPath ,uint32_t &envCubeMap, uint32_t &brdfLUTTexture, uint32_t &prefilterMap, uint32_t &irradianceMap)
+{
+	OpenGLRenderer renderer;
+
+	OpenGLShader equirectangularToCubemap("res/Shaders/equirectangularToCubemap.shader");
+
+	OpenGLShader irradianceShader("res/Shaders/irradianceConvolution.shader");
+
+	OpenGLShader preFilterShader("res/Shaders/pbrPreFilter.shader");
+
+	OpenGLShader brdfShader("res/Shaders/brdf.shader");
+
+	uint32_t captureFBO, captureRBO;
+	glGenFramebuffers(1, &captureFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+
+	glGenRenderbuffers(1, &captureRBO);
+	glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 1024, 1024);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, captureRBO);
+
+
+	stbi_set_flip_vertically_on_load(1);
+	int width, height, BPPComp;
+	float* hdrImageData = stbi_loadf(hdrPath.c_str(), &width, &height, &BPPComp, 0);
+	uint32_t hdrTexture;
+
+	if (hdrImageData)
+	{
+		glGenTextures(1, &hdrTexture);
+		glBindTexture(GL_TEXTURE_2D, hdrTexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, hdrImageData);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	}
+	else
+	{
+		std::cout << "Failed to load HDR image." << std::endl;
+	}
+
+	GLCall(glBindTexture(GL_TEXTURE_2D, 0));
+	if (hdrImageData)
+	{
+		stbi_image_free(hdrImageData);
+	}
+
+	//Generate background Cubemap
+	//uint32_t envCubeMap;
+	glGenTextures(1, &envCubeMap);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, envCubeMap);
+
+	for (int i = 0; i < 6; i++)
+	{
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 1024, 1024, 0, GL_RGB, GL_FLOAT, nullptr);
+	}
+
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+	glm::mat4 captureViews[] =
+	{
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+	};
+
+
+	equirectangularToCubemap.Bind();
+	equirectangularToCubemap.SetUniformMat4f("u_projection", captureProjection);
+	equirectangularToCubemap.SetUniform1i("u_equirectangularMap", 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, hdrTexture);
+
+	glViewport(0, 0, 1024, 1024);
+	for (int i = 0; i < 6; i++)
+	{
+		equirectangularToCubemap.SetUniformMat4f("u_view", captureViews[i]);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubeMap, 0);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		renderCube(equirectangularToCubemap);
+		//renderer.Draw(va, ib, equirectangularToCubemap);
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	//To remove visual dots
+	glBindTexture(GL_TEXTURE_CUBE_MAP, envCubeMap);
+	glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+	//Generate irradiance Cubemap
+	//uint32_t irradianceMap;
+	glGenTextures(1, &irradianceMap);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
+
+	for (int i = 0; i < 6; i++)
+	{
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 64, 64, 0, GL_RGB, GL_FLOAT, nullptr);
+	}
+
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+	glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 64, 64);
+
+	irradianceShader.Bind();
+	irradianceShader.SetUniformMat4f("u_projection", captureProjection);
+	irradianceShader.SetUniform1i("u_equirectangularMap", 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, envCubeMap);
+
+	glViewport(0, 0, 64, 64);
+	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+	for (int i = 0; i < 6; i++)
+	{
+		irradianceShader.SetUniformMat4f("u_view", captureViews[i]);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap, 0);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		//renderer.Draw(va, ib, irradianceShader);
+		renderCube(irradianceShader);
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	//Generate PreFilter Map
+	//uint32_t prefilterMap;
+	glGenTextures(1, &prefilterMap);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
+
+	for (int i = 0; i < 6; i++)
+	{
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 256, 256, 0, GL_RGB, GL_FLOAT, nullptr);
+	}
+
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+	preFilterShader.Bind();
+	preFilterShader.SetUniformMat4f("u_projection", captureProjection);
+	preFilterShader.SetUniform1i("u_environmentMap", 0);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, envCubeMap);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+	uint32_t maxMipLevels = 5;
+
+	for (int mip = 0; mip < maxMipLevels; mip++)
+	{
+		uint32_t mipWidth = 256 * glm::pow(0.5, mip);
+		uint32_t mipHeight = 256 * glm::pow(0.5, mip);
+
+		glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
+		glViewport(0, 0, mipWidth, mipHeight);
+
+		float roughness = (float)mip / (float)(maxMipLevels - 1);
+		preFilterShader.SetUniform1f("u_roughness", roughness);
+
+		for (int i = 0; i < 6; i++)
+		{
+			preFilterShader.SetUniformMat4f("u_view", captureViews[i]);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap, mip);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			//renderer.Draw(va, ib, preFilterShader);
+			renderCube(preFilterShader);
+		}
+	}
+
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+	//generate 2D LUT from BRDF equation
+	//uint32_t brdfLUTTexture;
+	glGenTextures(1, &brdfLUTTexture);
+	glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 1024, 1024, 0, GL_RG, GL_FLOAT, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+	glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 1024, 1024);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUTTexture, 0);
+	glViewport(0, 0, 1024, 1024);
+
+	brdfShader.Bind();
+	renderer.Clear();
+
+	//renderer.Draw(quadVAO, quadIBO, brdfShader);
+	renderQuad(brdfShader);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+const std::vector<std::string> environmentPaths = {
+	"res/Textures/Skybox/warmRestaurant.hdr",
+	"res/Textures/Skybox/warm_restaurant_night_2k.hdr",
+	"res/Textures/Skybox/metro_noord_2k.hdr",
+	"res/Textures/Skybox/peppermint_powerplant_2_2k.hdr",
+	"res/Textures/Skybox/rogland_clear_night_2k.hdr",
+	"res/Textures/Skybox/shanghai_bund_2k.hdr",
+};
+static int currentEnvIndex = 0;
+
+void ChangeEnvironmentInput(GLFWwindow* window, uint32_t& envCubeMap, uint32_t& brdfLUTTexture, uint32_t& prefilterMap, uint32_t& irradianceMap)
+{
+	static double lastPressTime = 0.0;
+	double currentTime = glfwGetTime();
+
+	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS && currentTime - lastPressTime > 2.0)
+	{
+		lastPressTime = currentTime;
+		if (currentEnvIndex > 0) 
+			currentEnvIndex--;
+		else
+			return;
+
+		LoadEnvironment(environmentPaths[currentEnvIndex], envCubeMap, brdfLUTTexture, prefilterMap, irradianceMap);
+	}
+
+
+	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS && currentTime - lastPressTime > 2.0)
+	{
+		lastPressTime = currentTime;
+		if (currentEnvIndex < environmentPaths.size() - 1)
+			currentEnvIndex++;
+		else
+			return;
+		LoadEnvironment(environmentPaths[currentEnvIndex], envCubeMap, brdfLUTTexture, prefilterMap, irradianceMap);
+	}
+}
+
 int main()
 {
 	//TODO: Put all this in a  Window Class
@@ -159,173 +539,6 @@ int main()
 	//GLCall(glEnable(GL_PROGRAM_POINT_SIZE));
 
 	{
-
-#if BOXES
-
-		////////Triangle Shader//////////////////
-		//Cube stuff
-		float vertices[] = {
-			// Positions         //Normals          //Textures
-			// Front face
-			-0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,// Bottom-left
-			 0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,// Bottom-right
-			 0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,// Top-right
-			-0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,// Top-left
-
-			// Back face
-			-0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,// Bottom-left
-			 0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,// Bottom-right
-			 0.5f,  0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,// Top-right
-			-0.5f,  0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,// Top-left
-
-			// Left face
-			-0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,// Bottom-left
-			-0.5f, -0.5f,  0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,// Bottom-right
-			-0.5f,  0.5f,  0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,// Top-right
-			-0.5f,  0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,// Top-left
-
-			// Right face
-			 0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,// Bottom-left
-			 0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,// Bottom-right
-			 0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,// Top-right
-			 0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,// Top-left
-
-			 // Top face
-			 -0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,// Bottom-left
-			  0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,// Bottom-right
-			  0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,// Top-right
-			 -0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,// Top-left
-
-			 // Bottom face
-			 -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,// Bottom-left
-			  0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,// Bottom-right
-			  0.5f, -0.5f,  0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f,// Top-right
-			 -0.5f, -0.5f,  0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,// Top-left
-		};
-
-		unsigned int indices[] = {
-			// Front face
-			0, 2, 1,
-			2, 0, 3,
-
-			// Back face
-			4, 6, 5,
-			6, 4, 7,
-
-			// Left face
-			8, 10, 9,
-			10, 8, 11,
-
-			// Right face
-			12, 14, 13,
-			14, 12, 15,
-
-			// Top face
-			16, 18, 17,
-			18, 16, 19,
-
-			// Bottom face
-			20, 22, 21,
-			22, 20, 23
-		};
-
-		//Assign VertexArrayObject
-		OpenGLVertexArray va;
-
-		OpenGLVertexArray lightVA;
-
-		//Assign the Vertex Buffer on the GPU
-		OpenGLVertexBuffer vb(sizeof(vertices), vertices);
-
-		//Assign the Index Buffer on the GPU
-		OpenGLIndexBuffer ib(sizeof(indices) / sizeof(indices[0]), indices);
-
-		//Add Vertex Layouts
-		VertexBufferLayout layout;
-		layout.Push<float>(3); //Position Attributes
-		layout.Push<float>(3); //Normal Attributes
-		layout.Push<float>(2); //Texture Attributes
-		va.AddBuffer(vb, layout);
-
-		VertexBufferLayout lightSourceLayout;
-		lightSourceLayout.Push<float>(3);//Postion Attributes
-		lightSourceLayout.AddStride(5 * sizeof(float));
-		lightVA.AddBuffer(vb, lightSourceLayout);
-
-		//Create Fragment Shader
-		
-
-		//Texture2D specularMap("res/Textures/container2_specular.png");
-		//specularMap.Bind(1);
-
-		//Texture2D emissionMap("res/Textures/matrix.jpg");
-		//emissionMap.Bind(2);
-
-		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-		va.UnBind();
-		lightVA.UnBind();
-		vb.UnBind();
-
-		float woodQuadVertices[] = {
-			// position				//Normals		 //TexCoords
-			 25.0f, -0.5f,  25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 0.0f,// Top-right
-			-25.0f, -0.5f,  25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,// Top-left
-			-25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 25.0f,// Bottom-left
-			 25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 25.0f,// Bottom-right
-		};
-
-		uint32_t woodQuadIndices[] = {
-			0, 1, 2,
-			0, 2 ,3,
-		};
-
-		OpenGLVertexArray woodQuadVA;
-
-		//Assign the Vertex Buffer on the GPU
-		OpenGLVertexBuffer woodQuadVB(sizeof(woodQuadVertices), woodQuadVertices);
-
-		//Assign the Index Buffer on the GPU
-		OpenGLIndexBuffer woodQuadIB(sizeof(woodQuadIndices) / sizeof(woodQuadIndices[0]), woodQuadIndices);
-
-		//Add Vertex Layouts
-		VertexBufferLayout woodQuadLayout;
-		woodQuadLayout.Push<float>(3); //Position Attribute
-		woodQuadLayout.Push<float>(3); //Normal Attribute
-		woodQuadLayout.Push<float>(2); //Texture Attribute
-		woodQuadVA.AddBuffer(woodQuadVB, woodQuadLayout);
-
-		//Create Texture
-		Texture2D woodTexture("res/Textures/wood.png");
-		woodTexture.Bind();
-		woodQuadVB.UnBind();
-
-		//Quad
-		float quadVertices[] = {
-			// positions        // texture Coords
-			-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
-			-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-			 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-			 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-		};
-
-		uint32_t quadIndices[] = {
-			0, 1, 2, 3
-		};
-
-		OpenGLVertexArray quadVAO;
-		OpenGLVertexBuffer quadVBO(sizeof(quadVertices), quadVertices);
-		OpenGLIndexBuffer quadIBO(sizeof(quadIndices) / sizeof(quadIndices[0]), quadIndices);
-
-		VertexBufferLayout quadLayout;
-		quadLayout.Push<float>(3);
-		quadLayout.Push<float>(2);
-
-		quadVAO.Bind();
-		quadVAO.AddBuffer(quadVBO, quadLayout);
-
-		quadVAO.UnBind(); 
-
 		//Sphere
 		std::vector<glm::vec3> spherePositions;
 		std::vector<glm::vec2> sphereUV;
@@ -417,222 +630,19 @@ int main()
 		environmentCubeMapShader.Bind();
 		environmentCubeMapShader.SetUniform1i("u_environmentMap", 0);
 
-		OpenGLShader equirectangularToCubemap("res/Shaders/equirectangularToCubemap.shader");
-
-		OpenGLShader irradianceShader("res/Shaders/irradianceConvolution.shader");
-
-		OpenGLShader preFilterShader("res/Shaders/pbrPreFilter.shader");
-		
-		OpenGLShader brdfShader("res/Shaders/brdf.shader");
-
 
 		OpenGLRenderer renderer;
 		
 		//SkyBox Stuff
 
-		uint32_t captureFBO, captureRBO;
-		glGenFramebuffers(1, &captureFBO);
-		glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+		uint32_t envCubeMap, brdfLUTTexture, prefilterMap, irradianceMap;
+		//std::string hdrPath = "res/Textures/Skybox/warmRestaurant.hdr";
 
-		glGenRenderbuffers(1, &captureRBO);
-		glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 1024, 1024);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, captureRBO);
-
-
-		stbi_set_flip_vertically_on_load(1);
-		int width, height, BPPComp;
-		float* hdrImageData = stbi_loadf("res/Textures/Skybox/warmRestaurant.hdr", &width, &height, &BPPComp, 0);
-		uint32_t hdrTexture;
-
-		if (hdrImageData)
-		{
-			glGenTextures(1, &hdrTexture);
-			glBindTexture(GL_TEXTURE_2D, hdrTexture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, hdrImageData);
-
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		}
-		else
-		{
-			std::cout << "Failed to load HDR image." << std::endl;
-		}
-
-		GLCall(glBindTexture(GL_TEXTURE_2D, 0));
-		if (hdrImageData)
-		{
-			stbi_image_free(hdrImageData);
-		}
-
-		//Generate background Cubemap
-		uint32_t envCubeMap;
-		glGenTextures(1, &envCubeMap);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, envCubeMap);
-
-		for (int i = 0; i < 6; i++)
-		{
-			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 1024, 1024, 0, GL_RGB, GL_FLOAT, nullptr);
-		}
-
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-		glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-		glm::mat4 captureViews[] =
-		{
-			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
-			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
-			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
-		};
-
-		
-		equirectangularToCubemap.Bind();
-		equirectangularToCubemap.SetUniformMat4f("u_projection", captureProjection);
-		equirectangularToCubemap.SetUniform1i("u_equirectangularMap", 0);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, hdrTexture);
-
-		glViewport(0, 0, 1024, 1024);
-		for (int i = 0; i < 6; i++)
-		{
-			equirectangularToCubemap.SetUniformMat4f("u_view", captureViews[i]);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubeMap, 0);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-			renderer.Draw(va, ib, equirectangularToCubemap);
-		}
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-		//To remove visual dots
-		glBindTexture(GL_TEXTURE_CUBE_MAP, envCubeMap);
-		glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-
-		//Generate irradiance Cubemap
-		uint32_t irradianceMap;
-		glGenTextures(1, &irradianceMap);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
-
-		for (int i = 0; i < 6; i++)
-		{
-			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 64, 64, 0, GL_RGB, GL_FLOAT, nullptr);
-		}
-
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-		glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 64, 64);
-
-		irradianceShader.Bind();
-		irradianceShader.SetUniformMat4f("u_projection", captureProjection);
-		irradianceShader.SetUniform1i("u_equirectangularMap", 0);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, envCubeMap);
-
-		glViewport(0, 0, 64, 64);
-		glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-		for (int i = 0; i < 6; i++)
-		{
-			irradianceShader.SetUniformMat4f("u_view", captureViews[i]);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap, 0);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-			renderer.Draw(va, ib, irradianceShader);
-		}
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-		//Generate PreFilter Map
-		uint32_t prefilterMap;
-		glGenTextures(1, &prefilterMap);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
-
-		for (int i = 0; i < 6; i++)
-		{
-			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 256, 256, 0, GL_RGB, GL_FLOAT, nullptr);
-		}
-
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-		glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-
-		preFilterShader.Bind();
-		preFilterShader.SetUniformMat4f("u_projection", captureProjection);
-		preFilterShader.SetUniform1i("u_environmentMap", 0);
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, envCubeMap);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-		uint32_t maxMipLevels = 5;
-
-		for (int mip = 0; mip < maxMipLevels; mip++)
-		{
-			uint32_t mipWidth  = 256 * glm::pow(0.5, mip);
-			uint32_t mipHeight = 256 * glm::pow(0.5, mip);
-
-			glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
-			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
-			glViewport(0, 0, mipWidth, mipHeight);
-
-			float roughness = (float)mip / (float)(maxMipLevels - 1);
-			preFilterShader.SetUniform1f("u_roughness", roughness);
-
-			for (int i = 0; i < 6; i++)
-			{
-				preFilterShader.SetUniformMat4f("u_view", captureViews[i]);
-				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap, mip);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-				renderer.Draw(va, ib, preFilterShader);
-			}
-		}
-
-		glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-		//generate 2D LUT from BRDF equation
-		uint32_t brdfLUTTexture;
-		glGenTextures(1, &brdfLUTTexture);
-		glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 1024, 1024, 0, GL_RG, GL_FLOAT, 0);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-		glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 1024, 1024);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUTTexture, 0);
-		glViewport(0, 0, 1024, 1024);
-
-		brdfShader.Bind();
-		renderer.Clear();
-
-		renderer.Draw(quadVAO, quadIBO, brdfShader);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+		LoadEnvironment(environmentPaths[currentEnvIndex], envCubeMap, brdfLUTTexture, prefilterMap, irradianceMap);
 
 		int scrWidth, scrHeight;
 		glfwGetFramebufferSize(window, &scrWidth, &scrHeight);
 		glViewport(0, 0, scrWidth, scrHeight);
-#endif
 		
 
 #if MODEL
@@ -690,6 +700,10 @@ int main()
 			renderer.Clear();
 
 			Camera->OnUpdate(window);
+			ChangeEnvironmentInput(window, envCubeMap, brdfLUTTexture, prefilterMap, irradianceMap);
+
+			glfwGetFramebufferSize(window, &scrWidth, &scrHeight);
+			glViewport(0, 0, scrWidth, scrHeight);
 
 #if MODEL
 			pbrShader.Bind();
@@ -745,7 +759,8 @@ int main()
 			environmentCubeMapShader.SetUniformMat4f("u_view", Camera->GetViewMatrix());
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_CUBE_MAP, envCubeMap);
-			renderer.Draw(va, ib, environmentCubeMapShader);
+			renderCube(environmentCubeMapShader);
+			//renderer.Draw(va, ib, environmentCubeMapShader);
 			//glDepthFunc(GL_LESS);
 
 #endif
