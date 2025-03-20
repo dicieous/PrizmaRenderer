@@ -1,6 +1,22 @@
 #include "Model.h"
 
 
+std::vector<aiTextureType> GetAvailableTextureTypes(aiMaterial* material)
+{
+	std::vector<aiTextureType> textureTypes;
+
+	for (int i = 0; i < AI_TEXTURE_TYPE_MAX; i++)
+	{
+		aiTextureType type = static_cast<aiTextureType>(i);
+		if (material->GetTextureCount(type) > 0)
+		{
+			textureTypes.push_back(type); // Store the int value of the texture type
+		}
+	}
+
+	return textureTypes;
+}
+
 Model::Model(const std::string& filePath)
 {
 	LoadModel(filePath);
@@ -85,17 +101,31 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 	if (mesh->mMaterialIndex >= 0)
 	{
 		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-		std::vector<Texture> diffuseMap = LoadMaterialTexture(material, aiTextureType_DIFFUSE, "texture_diffuse");
-		textures.insert(textures.end(), diffuseMap.begin(), diffuseMap.end());
 
-		std::vector<Texture> specularMaps = LoadMaterialTexture(material, aiTextureType_SPECULAR, "texture_specular");
-		textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
+		std::vector<aiTextureType> availableTypes = GetAvailableTextureTypes(material);
 
-		std::vector<Texture> normalMaps = LoadMaterialTexture(material, aiTextureType_HEIGHT, "texture_normal");
+		//For Debugging
+		/*std::cout << "Available Texture Types for Material " << mesh->mMaterialIndex << ": ";
+		for (auto type : availableTypes)
+		{
+			std::cout << type << " ";
+		}
+		std::cout << std::endl;*/
+
+		std::vector<Texture> albedoMap = LoadMaterialTexture(material, aiTextureType_BASE_COLOR, "u_albedoMap");
+		textures.insert(textures.end(), albedoMap.begin(), albedoMap.end());
+
+		std::vector<Texture> normalMaps = LoadMaterialTexture(material, aiTextureType_NORMAL_CAMERA, "u_normalMap");
 		textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
 
-		std::vector<Texture> heightMaps = LoadMaterialTexture(material, aiTextureType_AMBIENT, "texture_height");
-		textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
+		std::vector<Texture> roughnessMaps = LoadMaterialTexture(material, aiTextureType_DIFFUSE_ROUGHNESS, "u_roughnessMap");
+		textures.insert(textures.end(), roughnessMaps.begin(), roughnessMaps.end());
+
+		std::vector<Texture> metalnessMaps = LoadMaterialTexture(material, aiTextureType_METALNESS, "u_metallicMap");
+		textures.insert(textures.end(), metalnessMaps.begin(), metalnessMaps.end());
+
+		std::vector<Texture> aoMaps = LoadMaterialTexture(material, aiTextureType_DISPLACEMENT, "u_aoMap");
+		textures.insert(textures.end(), aoMaps.begin(), aoMaps.end());
 	}
 
 	return Mesh(vertices, indices, textures);
@@ -104,8 +134,8 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 std::vector<Texture> Model::LoadMaterialTexture(aiMaterial* mat, aiTextureType type, const std::string typeName)
 {
 	std::vector<Texture> textures;
-
-	for (uint32_t i = 0; i < mat->GetTextureCount(type); i++)
+	uint32_t count = mat->GetTextureCount(type);
+	for (uint32_t i = 0; i < count; i++)
 	{
 		aiString str;
 		mat->GetTexture(type, i, &str);

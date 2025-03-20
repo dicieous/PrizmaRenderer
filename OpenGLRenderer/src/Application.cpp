@@ -618,57 +618,12 @@ int main()
 
 		sphereVAO.AddBuffer(sphereVBO, sphereLayout);
 
-		//LoadTextures
-		//BrickWall
-		Texture2D brickWallAlbedo("res/Textures/brickWall/alley-brick-wall_albedo.png");
-		Texture2D brickWallNormal("res/Textures/brickWall/alley-brick-wall_normal-ogl.png");
-		Texture2D brickWallMetallic("res/Textures/brickWall/alley-brick-wall_metallic.png");
-		Texture2D brickWallRoughness("res/Textures/brickWall/alley-brick-wall_roughness.png");
-		Texture2D brickWallAO("res/Textures/brickWall/alley-brick-wall_ao.png");
-
-		//CopperScuffed
-		Texture2D CopperScuffedAlbedo("res/Textures/CopperScuffed/Copper-scuffed_basecolor-boosted.png");
-		Texture2D CopperScuffedNormal("res/Textures/CopperScuffed/Copper-scuffed_normal.png");
-		Texture2D CopperScuffedMetallic("res/Textures/CopperScuffed/Copper-scuffed_metallic.png");
-		Texture2D CopperScuffedRoughness("res/Textures/CopperScuffed/Copper-scuffed_roughness.png");
-		Texture2D CopperScuffedAO("res/Textures/CopperScuffed/Copper-scuffed_ao.png");
-
-		//darkTiles
-		Texture2D darkTilesAlbedo("res/Textures/darkTiles/dark-grey-tiles_albedo.png");
-		Texture2D darkTilesNormal("res/Textures/darkTiles/dark-grey-tiles_normal-ogl.png");
-		Texture2D darkTilesMetallic("res/Textures/darkTiles/dark-grey-tiles_metallic.png");
-		Texture2D darkTilesRoughness("res/Textures/darkTiles/dark-grey-tiles_roughness.png");
-		Texture2D darkTilesAO("res/Textures/darkTiles/dark-grey-tiles_ao.png");
-
-		//darkWood
-		Texture2D darkWoodAlbedo("res/Textures/darkWood/dark-wood-stain_albedo.png");
-		Texture2D darkWoodNormal("res/Textures/darkWood/dark-wood-stain_normal-ogl.png");
-		Texture2D darkWoodMetallic("res/Textures/darkWood/dark-wood-stain_metallic.png");
-		Texture2D darkWoodRoughness("res/Textures/darkWood/dark-wood-stain_roughness.png");
-		Texture2D darkWoodAO("res/Textures/darkWood/dark-wood-stain_ao.png");
-
-		//hammeredGold
-		Texture2D hammeredGoldAlbedo("res/Textures/hammeredGold/hammered-gold_albedo.png");
-		Texture2D hammeredGoldNormal("res/Textures/hammeredGold/hammered-gold_normal-ogl.png");
-		Texture2D hammeredGoldMetallic("res/Textures/hammeredGold/hammered-gold_metallic.png");
-		Texture2D hammeredGoldRoughness("res/Textures/hammeredGold/hammered-gold_roughness.png");
-		Texture2D hammeredGoldAO("res/Textures/hammeredGold/hammered-gold_ao.png");
-
-		//rustedTex
-		Texture2D rustedTexAlbedo("res/Textures/rustedTex/rustediron2_basecolor.png");
-		Texture2D rustedTexNormal("res/Textures/rustedTex/rustediron2_normal.png");
-		Texture2D rustedTexMetallic("res/Textures/rustedTex/rustediron2_metallic.png");
-		Texture2D rustedTexRoughness("res/Textures/rustedTex/rustediron2_roughness.png");
-		Texture2D rustedTexAO("res/Textures/rustedTex/rustediron2_ao.png");
-
 		//WhispyGrass
-		Texture2D WhispyGrassAlbedo("res/Textures/WhispyGrass/wispy-grass-meadow_albedo.png");
-		Texture2D WhispyGrassNormal("res/Textures/WhispyGrass/wispy-grass-meadow_normal-ogl.png");
-		Texture2D WhispyGrassMetallic("res/Textures/WhispyGrass/wispy-grass-meadow_metallic.png");
-		Texture2D WhispyGrassRoughness("res/Textures/WhispyGrass/wispy-grass-meadow_roughness.png");
-		Texture2D WhispyGrassAO("res/Textures/WhispyGrass/wispy-grass-meadow_ao.png");
-
-
+		Texture2D GunAlbedo("res/Models/Cerberus_by_Andrew_Maximov/Textures/Cerberus_A.tga");
+		Texture2D GunNormal("res/Models/Cerberus_by_Andrew_Maximov/Textures/Cerberus_N.tga");
+		Texture2D GunMetallic("res/Models/Cerberus_by_Andrew_Maximov/Textures/Cerberus_M.tga");
+		Texture2D GunRoughness("res/Models/Cerberus_by_Andrew_Maximov/Textures/Cerberus_R.tga");
+		Texture2D GunAO("res/Models/Cerberus_by_Andrew_Maximov/Textures/Cerberus_AO.tga");
 
 		OpenGLShader pbrShader("res/Shaders/pbr.shader");
 		pbrShader.Bind();
@@ -705,7 +660,7 @@ int main()
 
 		//OpenGLRenderer renderer;
 
-		Model model("res/Models/backpack/backpack.obj");
+		Model model("res/Models/Cerberus_by_Andrew_Maximov/Cerberus_LP.FBX");
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 #endif
@@ -774,105 +729,17 @@ int main()
 			glActiveTexture(GL_TEXTURE2);
 			glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
 
-			//brickwall
-			brickWallAlbedo.Bind(3);
-			brickWallNormal.Bind(4);
-			brickWallMetallic.Bind(5);
-			brickWallRoughness.Bind(6);
-			brickWallAO.Bind(7);
-			glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(-15.0f, 0.0f, 2.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
+			GunAlbedo.Bind(3);
+			GunNormal.Bind(4);
+			GunMetallic.Bind(5);
+			GunRoughness.Bind(6);
+			GunAO.Bind(7);
 
-			pbrShader.SetUniformMat4f("u_model", model);
-			renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
-
-			//copperScuffed
-			CopperScuffedAlbedo.Bind(3);
-			CopperScuffedNormal.Bind(4);
-			CopperScuffedMetallic.Bind(5);
-			CopperScuffedRoughness.Bind(6);
-			CopperScuffedAO.Bind(7);
-			model = glm::translate(glm::mat4(1.0f), glm::vec3(-10.0f, 0.0f, 2.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
-
-			pbrShader.SetUniformMat4f("u_model", model);
-			renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
-
-			//darkTiles
-			darkTilesAlbedo.Bind(3);
-			darkTilesNormal.Bind(4);
-			darkTilesMetallic.Bind(5);
-			darkTilesRoughness.Bind(6);
-			darkTilesAO.Bind(7);
-			model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, 0.0f, 2.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
-
-			pbrShader.SetUniformMat4f("u_model", model);
-			renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
-
-			//darkWood
-			darkWoodAlbedo.Bind(3);
-			darkWoodNormal.Bind(4);
-			darkWoodMetallic.Bind(5);
-			darkWoodRoughness.Bind(6);
-			darkWoodAO.Bind(7);
-			model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 2.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
-
-			pbrShader.SetUniformMat4f("u_model", model);
-			renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
-
-			//hammeredGold
-			hammeredGoldAlbedo.Bind(3);
-			hammeredGoldNormal.Bind(4);
-			hammeredGoldMetallic.Bind(5);
-			hammeredGoldRoughness.Bind(6);
-			hammeredGoldAO.Bind(7);
-			model = glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 0.0f, 2.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
-
-			pbrShader.SetUniformMat4f("u_model", model);
-			renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
-
-			//rustedTex
-			rustedTexAlbedo.Bind(3);
-			rustedTexNormal.Bind(4);
-			rustedTexMetallic.Bind(5);
-			rustedTexRoughness.Bind(6);
-			rustedTexAO.Bind(7);
-			model = glm::translate(glm::mat4(1.0f), glm::vec3(10.0f, 0.0f, 2.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
-
-			pbrShader.SetUniformMat4f("u_model", model);
-			renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
-
-			//WhispyGrass
-			WhispyGrassAlbedo.Bind(3);
-			WhispyGrassNormal.Bind(4);
-			WhispyGrassMetallic.Bind(5);
-			WhispyGrassRoughness.Bind(6);
-			WhispyGrassAO.Bind(7);
-			model = glm::translate(glm::mat4(1.0f), glm::vec3(15.0f, 0.0f, 2.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
-
-			pbrShader.SetUniformMat4f("u_model", model);
-			renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
-
-			//Render Lights
-			/*for (int i = 0; i < sizeof(lightPositions) / sizeof(lightPositions[0]); i++)
-			{
-				glm::vec3 newPos = lightPositions[i] + glm::vec3(sin(glfwGetTime() * 5.0) * 5.0, 0.0, 0.0);
-				newPos = lightPositions[i];
-
-				pbrShader.SetUniformVec3f("u_lightPositions[" + std::to_string(i) + "]", newPos);
-				pbrShader.SetUniformVec3f("u_lightColors[" + std::to_string(i) + "]", lightColors[i]);
-
-				glm::mat4 lightModel = glm::translate(glm::mat4(1.0f), newPos)
-					* glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
-
-				pbrShader.SetUniformMat4f("u_model", lightModel);
-				renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
-			}*/
+			glm::mat4 gunModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f))
+				* glm::rotate(glm::mat4(1.0f), glm::radians(-60.0f), glm::vec3(1.0f, 0.0f, 0.0f))
+				* glm::scale(glm::mat4(1.0f), glm::vec3(0.2f));
+			pbrShader.SetUniformMat4f("u_model", gunModel);
+			model.Draw(pbrShader);
 
 			//Render BackGround
 			//glDepthFunc(GL_LEQUAL);

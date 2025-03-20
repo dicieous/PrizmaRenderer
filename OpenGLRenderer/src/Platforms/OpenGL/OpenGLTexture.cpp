@@ -9,7 +9,7 @@
 Texture2D::Texture2D(const std::string& filePath)
 	:m_RendererID(0), m_FilePath(filePath), m_LocalBuffer(nullptr), m_width(0), m_height(0), m_BPP(0)
 {
-	stbi_set_flip_vertically_on_load(1);
+	stbi_set_flip_vertically_on_load(0);
 	m_LocalBuffer = stbi_load(filePath.c_str(), &m_width, &m_height, &m_BPP, 0);
 
 	if (m_LocalBuffer)
