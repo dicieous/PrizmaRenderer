@@ -43,11 +43,16 @@ uniform vec3 u_viewPos;
 uniform vec3 u_lightPositions[4];
 uniform vec3 u_lightColors[4];
 
+uniform vec3 u_defaultAlbedo;   // Default color
+uniform float u_defaultMetallic; // Default metallic factor
+uniform float u_defaultRoughness; // Default roughness
+
 uniform sampler2D u_albedoMap;
 uniform sampler2D u_normalMap;
 uniform sampler2D u_metallicMap;
 uniform sampler2D u_roughnessMap;
 uniform sampler2D u_aoMap;
+uniform sampler2D u_emissionMap;
 
 uniform samplerCube u_irradianceMap;
 uniform samplerCube u_prefilterMap;
@@ -56,6 +61,7 @@ uniform sampler2D u_brdfLUT;
 vec3 GetNormalFromMap()
 {
      vec3 tangentNormal = texture(u_normalMap, fs_in.TexCoords).xyz * 2.0 - 1.0;
+	 if (textureSize(u_normalMap, 0).x <= 1) return normalize(fs_in.Normal);
  
      vec3 Q1  = dFdx(fs_in.worldPos);
      vec3 Q2  = dFdy(fs_in.worldPos);
@@ -130,10 +136,22 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 
 void main()
 {
-	vec3 albedo = pow(texture(u_albedoMap, fs_in.TexCoords).rgb, vec3(2.2));
+	vec3 albedo = texture(u_albedoMap, fs_in.TexCoords).rgb;
+	if(textureSize(u_albedoMap, 0).x <= 1) albedo = u_defaultAlbedo;
+	albedo = pow(albedo, vec3(2.2));
+
  	float metallic = texture(u_metallicMap, fs_in.TexCoords).r;
+	if(textureSize(u_metallicMap, 0).x <= 1) metallic = u_defaultMetallic;
+
  	float roughness = texture(u_roughnessMap, fs_in.TexCoords).r;
- 	float ao = texture(u_aoMap, fs_in.TexCoords).r;
+	if(textureSize(u_roughnessMap, 0).x <= 1) roughness = u_defaultRoughness;
+
+	float ao = texture(u_aoMap, fs_in.TexCoords).r;
+	if(textureSize(u_aoMap, 0).x <= 1) ao = 1.0;
+
+	vec3 emission = texture(u_emissionMap, fs_in.TexCoords).rgb;
+	if (textureSize(u_emissionMap, 0).x <= 1) emission = vec3(0.0);
+
 
 	vec3 N = GetNormalFromMap(); //NormalDir
 	vec3 V = normalize(u_viewPos - fs_in.worldPos); //ViewDir
@@ -184,7 +202,7 @@ void main()
 	vec3 specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
 
 	vec3 ambient = (kD * diffuse + specular) * ao;
-	vec3 color = ambient + Lo;
+	vec3 color = ambient + Lo + emission;
 
 	color = color / (color + vec3(1.0));
 	color = pow(color, vec3(1.0/2.2));

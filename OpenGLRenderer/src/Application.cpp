@@ -29,12 +29,38 @@ const uint32_t SCR_HEIGHT = 900;
 
 static glm::vec2 s_ViewportSize{ SCR_WIDTH, SCR_HEIGHT };
 
+static int currModelIndex = 0;
+const int MAX_MODELS = 5;
+static bool isUntextured = false;
+
 static void ProcessInput(GLFWwindow* window)
 {
+	static double lastPressTime = 0.0;
+	double currentTime = glfwGetTime();
 
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 	{
 		glfwSetWindowShouldClose(window, true);
+	}
+
+
+	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS && currentTime - lastPressTime > 2.0)
+	{
+		lastPressTime = currentTime;
+		if (currModelIndex > 0)
+			currModelIndex--;
+		else
+			return;
+	}
+
+
+	if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && currentTime - lastPressTime > 2.0)
+	{
+		lastPressTime = currentTime;
+		if (currModelIndex < MAX_MODELS)
+			currModelIndex++;
+		else
+			return;
 	}
 }
 
@@ -423,6 +449,7 @@ const std::vector<std::string> environmentPaths = {
 	"res/Textures/Skybox/rogland_clear_night_2k.hdr",
 	"res/Textures/Skybox/shanghai_bund_2k.hdr",
 };
+
 static int currentEnvIndex = 0;
 
 void ChangeEnvironmentInput(GLFWwindow* window, uint32_t& envCubeMap, uint32_t& brdfLUTTexture, uint32_t& prefilterMap, uint32_t& irradianceMap)
@@ -618,12 +645,70 @@ int main()
 
 		sphereVAO.AddBuffer(sphereVBO, sphereLayout);
 
+		//LoadTextures
+		//BrickWall
+		Texture2D brickWallAlbedo("res/Textures/brickWall/alley-brick-wall_albedo.png");
+		Texture2D brickWallNormal("res/Textures/brickWall/alley-brick-wall_normal-ogl.png");
+		Texture2D brickWallMetallic("res/Textures/brickWall/alley-brick-wall_metallic.png");
+		Texture2D brickWallRoughness("res/Textures/brickWall/alley-brick-wall_roughness.png");
+		Texture2D brickWallAO("res/Textures/brickWall/alley-brick-wall_ao.png");
+
+		//CopperScuffed
+		Texture2D CopperScuffedAlbedo("res/Textures/CopperScuffed/Copper-scuffed_basecolor-boosted.png");
+		Texture2D CopperScuffedNormal("res/Textures/CopperScuffed/Copper-scuffed_normal.png");
+		Texture2D CopperScuffedMetallic("res/Textures/CopperScuffed/Copper-scuffed_metallic.png");
+		Texture2D CopperScuffedRoughness("res/Textures/CopperScuffed/Copper-scuffed_roughness.png");
+		Texture2D CopperScuffedAO("res/Textures/CopperScuffed/Copper-scuffed_ao.png");
+
+		//darkTiles
+		Texture2D darkTilesAlbedo("res/Textures/darkTiles/dark-grey-tiles_albedo.png");
+		Texture2D darkTilesNormal("res/Textures/darkTiles/dark-grey-tiles_normal-ogl.png");
+		Texture2D darkTilesMetallic("res/Textures/darkTiles/dark-grey-tiles_metallic.png");
+		Texture2D darkTilesRoughness("res/Textures/darkTiles/dark-grey-tiles_roughness.png");
+		Texture2D darkTilesAO("res/Textures/darkTiles/dark-grey-tiles_ao.png");
+
+		//darkWood
+		Texture2D darkWoodAlbedo("res/Textures/darkWood/dark-wood-stain_albedo.png");
+		Texture2D darkWoodNormal("res/Textures/darkWood/dark-wood-stain_normal-ogl.png");
+		Texture2D darkWoodMetallic("res/Textures/darkWood/dark-wood-stain_metallic.png");
+		Texture2D darkWoodRoughness("res/Textures/darkWood/dark-wood-stain_roughness.png");
+		Texture2D darkWoodAO("res/Textures/darkWood/dark-wood-stain_ao.png");
+
+		//hammeredGold
+		Texture2D hammeredGoldAlbedo("res/Textures/hammeredGold/hammered-gold_albedo.png");
+		Texture2D hammeredGoldNormal("res/Textures/hammeredGold/hammered-gold_normal-ogl.png");
+		Texture2D hammeredGoldMetallic("res/Textures/hammeredGold/hammered-gold_metallic.png");
+		Texture2D hammeredGoldRoughness("res/Textures/hammeredGold/hammered-gold_roughness.png");
+		Texture2D hammeredGoldAO("res/Textures/hammeredGold/hammered-gold_ao.png");
+
+		//rustedTex
+		Texture2D rustedTexAlbedo("res/Textures/rustedTex/rustediron2_basecolor.png");
+		Texture2D rustedTexNormal("res/Textures/rustedTex/rustediron2_normal.png");
+		Texture2D rustedTexMetallic("res/Textures/rustedTex/rustediron2_metallic.png");
+		Texture2D rustedTexRoughness("res/Textures/rustedTex/rustediron2_roughness.png");
+		Texture2D rustedTexAO("res/Textures/rustedTex/rustediron2_ao.png");
+
 		//WhispyGrass
+		Texture2D WhispyGrassAlbedo("res/Textures/WhispyGrass/wispy-grass-meadow_albedo.png");
+		Texture2D WhispyGrassNormal("res/Textures/WhispyGrass/wispy-grass-meadow_normal-ogl.png");
+		Texture2D WhispyGrassMetallic("res/Textures/WhispyGrass/wispy-grass-meadow_metallic.png");
+		Texture2D WhispyGrassRoughness("res/Textures/WhispyGrass/wispy-grass-meadow_roughness.png");
+		Texture2D WhispyGrassAO("res/Textures/WhispyGrass/wispy-grass-meadow_ao.png");
+
+		//CerebrusGun
 		Texture2D GunAlbedo("res/Models/Cerberus_by_Andrew_Maximov/Textures/Cerberus_A.tga");
 		Texture2D GunNormal("res/Models/Cerberus_by_Andrew_Maximov/Textures/Cerberus_N.tga");
 		Texture2D GunMetallic("res/Models/Cerberus_by_Andrew_Maximov/Textures/Cerberus_M.tga");
 		Texture2D GunRoughness("res/Models/Cerberus_by_Andrew_Maximov/Textures/Cerberus_R.tga");
 		Texture2D GunAO("res/Models/Cerberus_by_Andrew_Maximov/Textures/Cerberus_AO.tga");
+
+		//Helmet
+		Texture2D HelmetAlbedo("res/Models/helmet/helmet_basecolor.tga");
+		Texture2D HelmetNormal("res/Models/helmet/helmet_normal.tga");
+		Texture2D HelmetMetallic("res/Models/helmet/helmet_metalness.tga");
+		Texture2D HelmetRoughness("res/Models/helmet/helmet_roughness.tga");
+		Texture2D HelmetAO("res/Models/helmet/helmet_occlusion.tga");
+		Texture2D HelmetEmission("res/Models/helmet/helmet_emission.tga");
 
 		OpenGLShader pbrShader("res/Shaders/pbr.shader");
 		pbrShader.Bind();
@@ -631,16 +716,24 @@ int main()
 		pbrShader.SetUniform1i("u_prefilterMap", 1);
 		pbrShader.SetUniform1i("u_brdfLUT", 2);
 
+		pbrShader.SetUniformVec3f("u_defaultAlbedo", { 0.9f, 0.9f, 0.9f });
+		pbrShader.SetUniform1f("u_defaultMetallic", 0.9f);
+		pbrShader.SetUniform1f("u_defaultRoughness", 0.1f);
+
 		pbrShader.SetUniform1i("u_albedoMap", 3);
 		pbrShader.SetUniform1i("u_normalMap", 4);
 		pbrShader.SetUniform1i("u_metallicMap", 5);
 		pbrShader.SetUniform1i("u_roughnessMap", 6);
 		pbrShader.SetUniform1i("u_aoMap", 7);
+		pbrShader.SetUniform1i("u_emissionMap", 8);
 
 		OpenGLShader environmentCubeMapShader("res/Shaders/pbrCubemap.shader");
 		environmentCubeMapShader.Bind();
 		environmentCubeMapShader.SetUniform1i("u_environmentMap", 0);
 
+		float roughness = 0.0f;
+		float metallic = 0.0f;
+		glm::vec3 color = glm::vec3(1.0f);
 
 		OpenGLRenderer renderer;
 
@@ -660,7 +753,9 @@ int main()
 
 		//OpenGLRenderer renderer;
 
-		Model model("res/Models/Cerberus_by_Andrew_Maximov/Cerberus_LP.FBX");
+		Model cerebrusModel("res/Models/Cerberus_by_Andrew_Maximov/Cerberus_LP.FBX");
+		Model SciFiHelmetmodel("res/Models/helmet/helmet.obj");
+		Model dragonModel("res/Models/dragon/dragon.obj");
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 #endif
@@ -697,7 +792,7 @@ int main()
 
 		int nrRows = 7;
 		int nrColumns = 7;
-		float spacing = 5;
+		float spacing = 2.5;
 
 		while (!glfwWindowShouldClose(window))
 		{
@@ -729,17 +824,186 @@ int main()
 			glActiveTexture(GL_TEXTURE2);
 			glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
 
-			GunAlbedo.Bind(3);
-			GunNormal.Bind(4);
-			GunMetallic.Bind(5);
-			GunRoughness.Bind(6);
-			GunAO.Bind(7);
+			pbrShader.SetUniform1f("u_defaultMetallic", metallic);
+			pbrShader.SetUniform1f("u_defaultRoughness", roughness);
+			pbrShader.SetUniformVec3f("u_defaultAlbedo", color);
 
-			glm::mat4 gunModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f))
-				* glm::rotate(glm::mat4(1.0f), glm::radians(-60.0f), glm::vec3(1.0f, 0.0f, 0.0f))
-				* glm::scale(glm::mat4(1.0f), glm::vec3(0.2f));
-			pbrShader.SetUniformMat4f("u_model", gunModel);
-			model.Draw(pbrShader);
+			switch (currModelIndex)
+			{
+			case 0:
+			{
+				isUntextured = true;
+
+				HelmetAlbedo.UnBind(3);
+				HelmetNormal.UnBind(4);
+				HelmetMetallic.UnBind(5);
+				HelmetRoughness.UnBind(6);
+				HelmetAO.UnBind(7);
+				HelmetEmission.UnBind(8);
+
+				for (int row = 0; row < nrRows; row++)
+				{
+					pbrShader.SetUniform1f("u_defaultMetallic", (float)row / (float)nrRows);
+					for (int col = 0; col < nrColumns; col++)
+					{
+						pbrShader.SetUniform1f("u_defaultRoughness", glm::clamp((float)col / (float)nrColumns, 0.05f, 1.0f));
+
+						glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(
+							(col - (nrColumns * 0.5f)) * spacing,
+							(row - (nrRows * 0.5f)) * spacing,
+							0.0f
+						));
+
+						pbrShader.SetUniformMat4f("u_model", model);
+						renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
+					}
+				}
+			}
+			break;
+			case 1:
+			{
+				isUntextured = false;
+
+				//brickwall
+				brickWallAlbedo.Bind(3);
+				brickWallNormal.Bind(4);
+				brickWallMetallic.Bind(5);
+				brickWallRoughness.Bind(6);
+				brickWallAO.Bind(7);
+				glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(-15.0f, 0.0f, 2.0f))
+					* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
+
+				pbrShader.SetUniformMat4f("u_model", model);
+				renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
+
+				//copperScuffed
+				CopperScuffedAlbedo.Bind(3);
+				CopperScuffedNormal.Bind(4);
+				CopperScuffedMetallic.Bind(5);
+				CopperScuffedRoughness.Bind(6);
+				CopperScuffedAO.Bind(7);
+				model = glm::translate(glm::mat4(1.0f), glm::vec3(-10.0f, 0.0f, 2.0f))
+					* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
+
+				pbrShader.SetUniformMat4f("u_model", model);
+				renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
+
+				//darkTiles
+				darkTilesAlbedo.Bind(3);
+				darkTilesNormal.Bind(4);
+				darkTilesMetallic.Bind(5);
+				darkTilesRoughness.Bind(6);
+				darkTilesAO.Bind(7);
+				model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, 0.0f, 2.0f))
+					* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
+
+				pbrShader.SetUniformMat4f("u_model", model);
+				renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
+
+				//darkWood
+				darkWoodAlbedo.Bind(3);
+				darkWoodNormal.Bind(4);
+				darkWoodMetallic.Bind(5);
+				darkWoodRoughness.Bind(6);
+				darkWoodAO.Bind(7);
+				model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 2.0f))
+					* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
+
+				pbrShader.SetUniformMat4f("u_model", model);
+				renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
+
+				//hammeredGold
+				hammeredGoldAlbedo.Bind(3);
+				hammeredGoldNormal.Bind(4);
+				hammeredGoldMetallic.Bind(5);
+				hammeredGoldRoughness.Bind(6);
+				hammeredGoldAO.Bind(7);
+				model = glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 0.0f, 2.0f))
+					* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
+
+				pbrShader.SetUniformMat4f("u_model", model);
+				renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
+
+				//rustedTex
+				rustedTexAlbedo.Bind(3);
+				rustedTexNormal.Bind(4);
+				rustedTexMetallic.Bind(5);
+				rustedTexRoughness.Bind(6);
+				rustedTexAO.Bind(7);
+				model = glm::translate(glm::mat4(1.0f), glm::vec3(10.0f, 0.0f, 2.0f))
+					* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
+
+				pbrShader.SetUniformMat4f("u_model", model);
+				renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
+
+				//WhispyGrass
+				WhispyGrassAlbedo.Bind(3);
+				WhispyGrassNormal.Bind(4);
+				WhispyGrassMetallic.Bind(5);
+				WhispyGrassRoughness.Bind(6);
+				WhispyGrassAO.Bind(7);
+				model = glm::translate(glm::mat4(1.0f), glm::vec3(15.0f, 0.0f, 2.0f))
+					* glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
+
+				pbrShader.SetUniformMat4f("u_model", model);
+				renderer.DrawTriangleStrip(sphereVAO, sphereIBO, pbrShader);
+			}
+			break;
+			case 2:
+			{
+				isUntextured = false;
+
+				GunAlbedo.Bind(3);
+				GunNormal.Bind(4);
+				GunMetallic.Bind(5);
+				GunRoughness.Bind(6);
+				GunAO.Bind(7);
+
+				glm::mat4 gunModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f))
+					* glm::rotate(glm::mat4(1.0f), glm::radians(-60.0f), glm::vec3(1.0f, 0.0f, 0.0f))
+					* glm::scale(glm::mat4(1.0f), glm::vec3(0.2f));
+				pbrShader.SetUniformMat4f("u_model", gunModel);
+				cerebrusModel.Draw(pbrShader);
+			}
+			break;
+			case 3:
+			{
+				isUntextured = true;
+
+				HelmetAlbedo.UnBind(3);
+				HelmetNormal.UnBind(4);
+				HelmetMetallic.UnBind(5);
+				HelmetRoughness.UnBind(6);
+				HelmetAO.UnBind(7);
+				HelmetEmission.UnBind(8);
+
+				glm::mat4 dModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f))
+					//* glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f))
+					* glm::scale(glm::mat4(1.0f), glm::vec3(15.0f));
+				pbrShader.SetUniformMat4f("u_model", dModel);
+				dragonModel.Draw(pbrShader);
+			}
+			break;
+			case 4:
+			{
+				isUntextured = false;
+
+				HelmetAlbedo.Bind(3);
+				HelmetNormal.Bind(4);
+				HelmetMetallic.Bind(5);
+				HelmetRoughness.Bind(6);
+				HelmetAO.Bind(7);
+				HelmetEmission.Bind(8);
+
+				glm::mat4 helmetModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f))
+					* glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f))
+					* glm::scale(glm::mat4(1.0f), glm::vec3(10.0f));
+				pbrShader.SetUniformMat4f("u_model", helmetModel);
+				SciFiHelmetmodel.Draw(pbrShader);
+			}
+			break;
+			}
+
 
 			//Render BackGround
 			//glDepthFunc(GL_LEQUAL);
@@ -774,12 +1038,17 @@ int main()
 			/////////////////////
 #endif
 
-			ImGui::Begin("FPS");
+			ImGui::Begin("Renderer");
 
 			//ImGui::Text("This is some useful text.");
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 			ImGui::Separator();
-
+			if (isUntextured)
+			{
+				ImGui::ColorEdit3("Albedo", glm::value_ptr(color));
+				ImGui::DragFloat("Roughness", &roughness, 0.05f, 0.0f, 1.0f);
+				ImGui::DragFloat("Metallic", &metallic, 0.05f, 0.0f, 1.0f);
+			}
 			ImGui::Separator();
 			ImGui::End();
 

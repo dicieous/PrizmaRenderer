@@ -8,8 +8,8 @@ public:
 	Texture2D(const std::string& filePath);
 	~Texture2D();
 
-	void Bind(unsigned int slot = 0) const;
-	void UnBind() const;
+	void Bind(uint32_t slot = 0) const;
+	void UnBind(uint32_t slot = 0) const;
 
 	inline int GetWidth() const { return m_width; }
 	inline int GetHeight() const { return m_height; }

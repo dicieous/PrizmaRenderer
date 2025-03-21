@@ -71,13 +71,14 @@ Texture2D::~Texture2D()
 	GLCall(glDeleteTextures(1, &m_RendererID));
 }
 
-void Texture2D::Bind(unsigned int slot) const
+void Texture2D::Bind(uint32_t slot) const
 {
 	GLCall(glActiveTexture(GL_TEXTURE0 + slot));
 	GLCall(glBindTexture(GL_TEXTURE_2D, m_RendererID));
 }
 
-void Texture2D::UnBind() const
+void Texture2D::UnBind(uint32_t slot) const
 {
+	GLCall(glActiveTexture(GL_TEXTURE0 + slot));
 	GLCall(glBindTexture(GL_TEXTURE_2D, 0));
 }

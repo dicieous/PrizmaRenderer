@@ -80,8 +80,11 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 		if (mesh->mTextureCoords[0])
 		{
 			TexCoords = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
-			tangents = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z};
-			biTangents = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z};
+			if (mesh->HasTangentsAndBitangents())
+			{
+				tangents = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z };
+				biTangents = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z };
+			}
 		}
 
 		vertices.push_back(Vertex{ positions, normals, TexCoords, tangents, biTangents });
@@ -104,13 +107,14 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 
 		std::vector<aiTextureType> availableTypes = GetAvailableTextureTypes(material);
 
+		/*
 		//For Debugging
-		/*std::cout << "Available Texture Types for Material " << mesh->mMaterialIndex << ": ";
-		for (auto type : availableTypes)
-		{
-			std::cout << type << " ";
-		}
-		std::cout << std::endl;*/
+		//std::cout << "Available Texture Types for Material " << mesh->mMaterialIndex << ": ";
+		//for (auto type : availableTypes)
+		//{
+		//	std::cout << type << " ";
+		//}
+		//std::cout << std::endl;
 
 		std::vector<Texture> albedoMap = LoadMaterialTexture(material, aiTextureType_BASE_COLOR, "u_albedoMap");
 		textures.insert(textures.end(), albedoMap.begin(), albedoMap.end());
@@ -126,6 +130,7 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 
 		std::vector<Texture> aoMaps = LoadMaterialTexture(material, aiTextureType_DISPLACEMENT, "u_aoMap");
 		textures.insert(textures.end(), aoMaps.begin(), aoMaps.end());
+		*/
 	}
 
 	return Mesh(vertices, indices, textures);
