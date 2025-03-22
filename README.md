@@ -50,6 +50,10 @@ PrizmaRenderer is a rendering engine that I developed as a learning project for 
 |GreyScale ![GreyScale](https://github.com/dicieous/PrizmaRenderer/blob/75c9c3e998a93ba33781fd99b36fe0eb7fc99569/OpenGLRenderer/readme/PostProcess1.png)| Saturation ![Saturation](https://github.com/dicieous/PrizmaRenderer/blob/75c9c3e998a93ba33781fd99b36fe0eb7fc99569/OpenGLRenderer/readme/PostProcess3.png) |
 |Blur ![Blur](https://github.com/dicieous/PrizmaRenderer/blob/75c9c3e998a93ba33781fd99b36fe0eb7fc99569/OpenGLRenderer/readme/PostProcess4.png) | Color Inversion ![Color Inversion](https://github.com/dicieous/PrizmaRenderer/blob/75c9c3e998a93ba33781fd99b36fe0eb7fc99569/OpenGLRenderer/readme/PostProcess2.png) |
 
+**Shadow Mapping**
+
+![Shadow Mapping](https://github.com/dicieous/PrizmaRenderer/blob/8b46a47a501d026705c869e9034b405f9a7fe28e/OpenGLRenderer/readme/shadowMapping.gif)
+
 **Geometry Vertex Transformation**
 ![Geometry Vertex Transformation](https://github.com/dicieous/PrizmaRenderer/blob/75c9c3e998a93ba33781fd99b36fe0eb7fc99569/OpenGLRenderer/readme/GeometryShader.png)
 
