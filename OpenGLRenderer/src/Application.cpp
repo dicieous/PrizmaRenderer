@@ -57,7 +57,7 @@ static void ProcessInput(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && currentTime - lastPressTime > 2.0)
 	{
 		lastPressTime = currentTime;
-		if (currModelIndex < MAX_MODELS)
+		if (currModelIndex < MAX_MODELS - 1)
 			currModelIndex++;
 		else
 			return;
